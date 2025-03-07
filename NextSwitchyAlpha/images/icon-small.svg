@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 背景 -->
+    <rect width="16" height="16" rx="3" fill="#4285f4" fill-opacity="0.1"/>
+    
+    <!-- 简化的连接线和箭头 -->
+    <path d="M4.5 8C4.5 6 6 4.5 8 4.5C10 4.5 11.5 6 11.5 8" 
+          stroke="#4285f4" 
+          stroke-width="1.5" 
+          stroke-linecap="round"/>
+    
+    <!-- 简化的箭头 -->
+    <path d="M8 4.5L9.5 4.5L9.5 6L8 7.5" 
+          stroke="#4285f4" 
+          stroke-width="1.5" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- 底部连接线 -->
+    <path d="M11.5 8C11.5 10 10 11.5 8 11.5C6 11.5 4.5 10 4.5 8" 
+          stroke="#4285f4" 
+          stroke-opacity="0.6" 
+          stroke-width="1.5" 
+          stroke-linecap="round"/>
+    
+    <!-- 中心点 -->
+    <circle cx="8" cy="8" r="1" fill="#4285f4"/>
+</svg>

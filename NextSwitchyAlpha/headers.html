@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>请求头信息</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 20px 0;
+      color: #333;
+      font-size: 24px;
+    }
+
+    .info-section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .info-section h2 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      color: #4285f4;
+    }
+
+    .header-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .header-item {
+      display: flex;
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .header-item:last-child {
+      border-bottom: none;
+    }
+
+    .header-name {
+      flex: 0 0 200px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .header-value {
+      flex: 1;
+      color: #666;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      padding: 4px 8px;
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+
+    .copy-btn:hover {
+      background-color: #e9ecef;
+    }
+
+    .refresh-btn {
+      padding: 8px 16px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      float: right;
+    }
+
+    .refresh-btn:hover {
+      background-color: #3367d6;
+    }
+
+    #status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    #status.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    #status.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      请求头信息
+      <button class="refresh-btn" onclick="refreshInfo()">刷新</button>
+    </h1>
+
+    <div class="info-section">
+      <h2>基本信息</h2>
+      <ul class="header-list" id="basic-info">
+        <!-- 基本信息将通过JS动态添加 -->
+      </ul>
+    </div>
+
+    <div class="info-section">
+      <h2>请求头</h2>
+      <ul class="header-list" id="request-headers">
+        <!-- 请求头信息将通过JS动态添加 -->
+      </ul>
+    </div>
+
+    <div id="status"></div>
+  </div>
+
+  <script src="headers.js"></script>
+</body>
+</html> 

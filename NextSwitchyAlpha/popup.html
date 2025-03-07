@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>NextSwitchyAlpha</title>
+  <style>
+    body {
+      width: 320px;
+      padding: 15px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .section {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 10px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .proxy-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .proxy-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .proxy-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .proxy-item.active {
+      border-color: #4285f4;
+      background-color: #e6f2ff;
+    }
+
+    .proxy-name {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .proxy-detail {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .tool-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tool-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tool-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-content {
+      display: none;
+      padding: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+
+    .tool-content.show {
+      display: block;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .custom-header-input {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .custom-header-add {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .custom-header-input input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .proxy-add-form {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 4px;
+    }
+
+    .proxy-add-form .input-group:last-child {
+      justify-content: flex-end;
+    }
+
+    .quick-ips {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .quick-ips .btn {
+      font-family: monospace;
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      box-sizing: border-box;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background-color: #f5f5f5;
+    }
+
+    .btn.primary {
+      background-color: #4285f4;
+      border-color: #4285f4;
+      color: white;
+    }
+
+    .btn.primary:hover {
+      background-color: #3367d6;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 20px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #4285f4;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    .version {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .author {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .language-switch {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 12px;
+      color: #666;
+      cursor: pointer;
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    .language-switch:hover {
+      background: #f5f5f5;
+    }
+
+    [data-lang="en"] [data-text="zh"],
+    [data-lang="zh"] [data-text="en"] {
+      display: none;
+    }
+
+    .system-proxy-status {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-left: 6px;
+      position: relative;
+      background-color: #ccc;
+      transition: all 0.3s ease;
+    }
+
+    .system-proxy-status.active {
+      background-color: #4caf50;
+      box-shadow: 0 0 4px #4caf50;
+    }
+
+    .system-proxy-status.error {
+      background-color: #f44336;
+      box-shadow: 0 0 4px #f44336;
+    }
+    
+    .system-proxy-status.error::before {
+      content: '!';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 6px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <button class="language-switch" id="langSwitch">EN</button>
+  <div class="container" data-lang="zh">
+    <!-- 代理切换部分 -->
+    <div class="section">
+      <h2 class="section-title">
+        <span data-text="zh">代理切换</span>
+        <span data-text="en">Proxy Switch</span>
+      </h2>
+      <div class="proxy-list" id="proxy-list">
+        <!-- 代理列表将通过JS动态添加 -->
+      </div>
+      <div class="proxy-add-form">
+        <div class="input-group">
+          <input type="text" id="proxy-name" placeholder="代理名称" data-placeholder-zh="代理名称" data-placeholder-en="Proxy Name" style="width: 100px;">
+          <select id="proxy-scheme" style="width: 80px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+            <option value="http">http</option>
+            <option value="https">https</option>
+            <option value="socks4">socks4</option>
+            <option value="socks5">socks5</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <input type="text" id="proxy-host" placeholder="主机地址" data-placeholder-zh="主机地址" data-placeholder-en="Host Address">
+          <input type="text" id="proxy-port" placeholder="端口" data-placeholder-zh="端口" data-placeholder-en="Port" style="width: 60px;">
+          <button class="btn primary" id="add-proxy">
+            <span data-text="zh">添加</span>
+            <span data-text="en">Add</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 请求头修改工具 -->
+    <div class="section">
+      <h2 class="section-title">
+        <span data-text="zh">请求头修改</span>
+        <span data-text="en">Header Modification</span>
+      </h2>
+      <div class="tool-section">
+        <!-- XFF修改 -->
+        <div class="tool-item">
+          <div class="tool-header">
+            <label class="switch">
+              <input type="checkbox" id="xforwarded-switch">
+              <span class="slider"></span>
+            </label>
+            <span>
+              <span data-text="zh">XFF修改</span>
+              <span data-text="en">XFF Modification</span>
+            </span>
+          </div>
+          <div class="tool-content" id="xforwarded-content">
+            <div class="input-group">
+              <select id="header-select" multiple style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-height: 100px;">
+                <option value="x-forwarded-for">X-Forwarded-For</option>
+                <option value="x-originating-ip">X-Originating-IP</option>
+                <option value="x-remote-ip">X-Remote-IP</option>
+                <option value="x-remote-addr">X-Remote-Addr</option>
+                <option value="x-real-ip">X-Real-IP</option>
+                <option value="x-forwarded">X-Forwarded</option>
+                <option value="x-cluster-client-ip">X-Cluster-Client-IP</option>
+                <option value="forwarded-for">Forwarded-For</option>
+                <option value="forwarded">Forwarded</option>
+                <option value="true-client-ip">True-Client-IP</option>
+                <option value="client-ip">Client-IP</option>
+                <option value="ali-cdn-real-ip">Ali-CDN-Real-IP</option>
+                <option value="cdn-src-ip">CDN-SRC-IP</option>
+                <option value="cdn-real-ip">CDN-Real-IP</option>
+                <option value="cf-connecting-ip">CF-Connecting-IP</option>
+                <option value="wl-proxy-client-ip">WL-Proxy-Client-IP</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <input type="text" id="xforwarded-ip" placeholder="输入IP地址，例如: 1.1.1.1" data-placeholder-zh="输入IP地址，例如: 1.1.1.1" data-placeholder-en="Enter IP address, e.g.: 1.1.1.1">
+              <button class="btn primary" id="xforwarded-save">
+                <span data-text="zh">保存</span>
+                <span data-text="en">Save</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 自定义请求头 -->
+        <div class="tool-item">
+          <div class="tool-header">
+            <label class="switch">
+              <input type="checkbox" id="custom-headers-switch">
+              <span class="slider"></span>
+            </label>
+            <span>
+              <span data-text="zh">自定义请求头</span>
+              <span data-text="en">Custom Headers</span>
+            </span>
+          </div>
+          <div class="tool-content" id="custom-headers-content">
+            <div id="custom-headers-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- 自定义请求头列表将通过JS动态添加 -->
+            </div>
+            <div class="input-group" style="margin-top: 12px;">
+              <div class="custom-header-input">
+                <input type="text" id="custom-header-name" placeholder="请求头名称" data-placeholder-zh="请求头名称" data-placeholder-en="Header Name">
+                <input type="text" id="custom-header-value" placeholder="请求头内容" data-placeholder-zh="请求头内容" data-placeholder-en="Header Value">
+              </div>
+              <div class="custom-header-add">
+                <button class="btn primary" id="add-custom-header">
+                  <span data-text="zh">添加</span>
+                  <span data-text="en">Add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User-Agent -->
+        <div class="tool-item">
+          <div class="tool-header">
+            <label class="switch">
+              <input type="checkbox" id="ua-switch">
+              <span class="slider"></span>
+            </label>
+            <span>User-Agent</span>
+          </div>
+          <div class="tool-content" id="ua-content">
+            <div class="input-group">
+              <input type="text" id="ua-value" placeholder="输入User-Agent" data-placeholder-zh="输入User-Agent" data-placeholder-en="Enter User-Agent">
+              <button class="btn primary" id="ua-save">
+                <span data-text="zh">保存</span>
+                <span data-text="en">Save</span>
+              </button>
+            </div>
+            <div class="input-group">
+              <button class="btn" id="ua-mobile">
+                <span data-text="zh">移动端</span>
+                <span data-text="en">Mobile</span>
+              </button>
+              <button class="btn" id="ua-desktop">
+                <span data-text="zh">桌面端</span>
+                <span data-text="en">Desktop</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span class="author">
+      <span data-text="zh">作者：可以遐想</span>
+      <span data-text="en">Author: keyixiaxiang</span>
+    </span>
+    <span class="version">v0.1.0 Alpha</span>
+  </div>
+
+  <script src="popup.js"></script>
+  <script src="language.js"></script>
+</body>
+</html>

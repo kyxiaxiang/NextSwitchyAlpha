@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "NextSwitchyAlpha",
+  "version": "0.1.0",
+  "description": "All-in-one proxy switcher and header modifier (Alternative to Proxy SwitchyOmega, ModHeader, and X-Forwarded-For Header)",
+  "author": "可以遐想 (keyixiaxiang)",
+  "homepage_url": "https://github.com/kyxiaxiang",
+  "default_locale": "en",
+  "permissions": [
+    "proxy",
+    "storage",
+    "declarativeNetRequest",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [{
+      "id": "ruleset_1",
+      "enabled": true,
+      "path": "rules.json"
+    }]
+  }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 背景 -->
+    <rect width="128" height="128" rx="24" fill="#4285f4" fill-opacity="0.1"/>
+    
+    <!-- 连接线 -->
+    <path d="M38 64C38 49.6406 49.6406 38 64 38C78.3594 38 90 49.6406 90 64" 
+          stroke="#4285f4" 
+          stroke-width="10" 
+          stroke-linecap="round"/>
+    
+    <!-- 箭头1 -->
+    <path d="M64 38L76 38M76 38L76 50M76 38L58 56" 
+          stroke="#4285f4" 
+          stroke-width="10" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- 底部连接线 -->
+    <path d="M90 64C90 78.3594 78.3594 90 64 90C49.6406 90 38 78.3594 38 64" 
+          stroke="#4285f4" 
+          stroke-opacity="0.6" 
+          stroke-width="10" 
+          stroke-linecap="round"/>
+    
+    <!-- 中心圆环 -->
+    <circle cx="64" cy="64" r="10" fill="#4285f4" fill-opacity="0.2"/>
+    <circle cx="64" cy="64" r="6" fill="#4285f4"/>
+    
+    <!-- 装饰点 -->
+    <circle cx="38" cy="64" r="5" fill="#4285f4" fill-opacity="0.6"/>
+    <circle cx="90" cy="64" r="5" fill="#4285f4" fill-opacity="0.6"/>
+</svg>

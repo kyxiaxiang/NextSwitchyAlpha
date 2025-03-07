@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "NextSwitchyAlpha",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "多功能代理切换和请求头修改工具，可替代 Proxy SwitchyOmega、ModHeader 和 X-Forwarded-For Header 等插件",
+    "description": "扩展描述"
+  }
+} 

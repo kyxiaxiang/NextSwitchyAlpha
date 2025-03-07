@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "NextSwitchyAlpha",
+    "description": "The name of the extension"
+  },
+  "extensionDescription": {
+    "message": "All-in-one proxy switcher and header modifier (Alternative to Proxy SwitchyOmega, ModHeader, and X-Forwarded-For Header)",
+    "description": "The description of the extension"
+  }
+} 

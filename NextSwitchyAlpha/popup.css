@@ -1,0 +1,131 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+  color: #333;
+  min-width: 300px;
+}
+
+.container {
+  padding: 15px;
+}
+
+h1 {
+  font-size: 18px;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+  color: #4285f4;
+}
+
+h2 {
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+.proxy-list {
+  margin-bottom: 15px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  padding: 8px 10px;
+  margin-bottom: 1px;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+li:hover {
+  background-color: #f0f7ff;
+}
+
+li.active {
+  background-color: #e6f2ff;
+  border-left: 3px solid #4285f4;
+}
+
+li.divider {
+  height: 1px;
+  background-color: #ddd;
+  margin: 8px 0;
+  padding: 0;
+  cursor: default;
+}
+
+li.divider:hover {
+  background-color: #ddd;
+}
+
+.proxy-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.proxy-name {
+  flex: 1;
+  font-size: 14px;
+}
+
+.proxy-details {
+  font-size: 12px;
+  color: #666;
+  margin-left: 8px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delete-btn {
+  visibility: hidden;
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  padding: 0 4px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+li:hover .delete-btn {
+  visibility: visible;
+}
+
+.delete-btn:hover {
+  color: #f44336;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.btn {
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: #3367d6;
+} 
