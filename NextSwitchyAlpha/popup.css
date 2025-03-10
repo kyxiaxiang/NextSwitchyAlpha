@@ -74,8 +74,45 @@ li.divider:hover {
 }
 
 .proxy-name {
-  flex: 1;
-  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-proxy-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  display: inline-block;
+  margin-left: 6px;
+}
+
+.system-proxy-status.error {
+  background-color: #f44336;
+}
+
+.proxy-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.proxy-item:hover {
+  background-color: #f5f5f5;
+}
+
+.proxy-item.active {
+  background-color: #e3f2fd;
+}
+
+.proxy-item.active .proxy-name {
+  color: #1976d2;
 }
 
 .proxy-details {

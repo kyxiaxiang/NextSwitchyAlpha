@@ -8,7 +8,16 @@ const SYSTEM_PROXY_CHECK_INTERVAL = 2000;
 
 // 初始化
 chrome.runtime.onInstalled.addListener(() => {
-  // 设置默认配置
+  initializeConfigs();
+});
+
+// 在扩展启动时也初始化配置
+chrome.runtime.onStartup.addListener(() => {
+  initializeConfigs();
+});
+
+// 初始化配置函数
+function initializeConfigs() {
   chrome.storage.local.get(['proxyConfigs', 'currentProxy', 'headerSettings', 'uaSettings'], (result) => {
     if (!result.proxyConfigs) {
       proxyConfigs = {
@@ -22,7 +31,8 @@ chrome.runtime.onInstalled.addListener(() => {
 
     // 设置默认代理为系统代理
     if (!result.currentProxy) {
-      chrome.storage.local.set({ currentProxy: 'system' });
+      currentProxy = 'system';
+      chrome.storage.local.set({ currentProxy });
     } else {
       currentProxy = result.currentProxy;
     }
@@ -38,15 +48,17 @@ chrome.runtime.onInstalled.addListener(() => {
       applyUserAgentRules(result.uaSettings);
     }
   });
-});
+}
 
 // 监听存储变化
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.proxyConfigs) {
-    proxyConfigs = changes.proxyConfigs.newValue;
+    proxyConfigs = changes.proxyConfigs.newValue || {};
+    console.log('代理配置已更新:', proxyConfigs);
   }
   if (changes.currentProxy) {
     currentProxy = changes.currentProxy.newValue;
+    console.log('当前代理已更新:', currentProxy);
     applyProxySettings(currentProxy);
   }
 });
@@ -97,7 +109,10 @@ async function checkProxySettings() {
 // 应用代理设置
 function applyProxySettings(proxyName) {
   const config = proxyConfigs[proxyName];
-  if (!config) return;
+  if (!config) {
+    console.error('找不到代理配置:', proxyName);
+    return;
+  }
 
   let proxySettings = {};
 
@@ -106,7 +121,7 @@ function applyProxySettings(proxyName) {
       proxySettings = { mode: 'direct' };
       break;
     case 'system':
-      proxySettings = { mode: 'system' }; // 使用 system 而不是 auto_detect
+      proxySettings = { mode: 'system' };
       break;
     case 'fixed_servers':
       proxySettings = {
@@ -133,37 +148,50 @@ function applyProxySettings(proxyName) {
   }
 
   try {
-    // 应用代理设置前先清除现有设置
-    chrome.proxy.settings.clear(
-      { scope: 'regular' },
-      () => {
-        setTimeout(() => {
-          // 应用新的代理设置
-          chrome.proxy.settings.set(
-            { value: proxySettings, scope: 'regular' },
-            () => {
-              if (chrome.runtime.lastError) {
-                console.error('代理设置应用失败:', chrome.runtime.lastError);
-                if (config.mode === 'system' && systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
-                  systemProxyRetryCount++;
-                  setTimeout(() => applyProxySettings(proxyName), SYSTEM_PROXY_RETRY_INTERVAL);
-                }
-              } else {
-                console.log('代理设置已应用:', proxyName, proxySettings);
-                systemProxyRetryCount = 0;
-                updateIcon(proxyName);
-                
-                if (config.mode === 'system') {
-                  startSystemProxyMonitor();
-                } else {
-                  stopSystemProxyMonitor();
-                }
-              }
-            }
-          );
-        }, 100); // 等待100ms确保清除操作完成
+    // 在应用新设置之前，先确保配置已经保存到存储中
+    chrome.storage.local.set({ proxyConfigs, currentProxy: proxyName }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('保存配置失败:', chrome.runtime.lastError);
+        return;
       }
-    );
+
+      // 直接应用新的代理设置，不再先清除
+      chrome.proxy.settings.set(
+        { value: proxySettings, scope: 'regular' },
+        () => {
+          if (chrome.runtime.lastError) {
+            console.error('代理设置应用失败:', chrome.runtime.lastError);
+            if (config.mode === 'system' && systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
+              systemProxyRetryCount++;
+              setTimeout(() => applyProxySettings(proxyName), SYSTEM_PROXY_RETRY_INTERVAL);
+            }
+          } else {
+            console.log('代理设置已应用:', proxyName, proxySettings);
+            systemProxyRetryCount = 0;
+            updateIcon(proxyName);
+            
+            // 验证设置是否成功应用
+            setTimeout(() => {
+              checkProxySettings().then(isValid => {
+                if (!isValid) {
+                  console.warn('代理设置可能未正确应用，尝试重新应用');
+                  if (systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
+                    systemProxyRetryCount++;
+                    applyProxySettings(proxyName);
+                  }
+                }
+              });
+            }, 500);
+
+            if (config.mode === 'system') {
+              startSystemProxyMonitor();
+            } else {
+              stopSystemProxyMonitor();
+            }
+          }
+        }
+      );
+    });
   } catch (error) {
     console.error('应用代理设置时发生错误:', error);
     if (config.mode === 'system' && systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
@@ -337,25 +365,63 @@ function updateDynamicRules(rules) {
 // 监听来自弹出窗口的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'getProxyConfigs') {
-    sendResponse({ proxyConfigs, currentProxy });
+    // 从存储中重新获取最新配置
+    chrome.storage.local.get(['proxyConfigs', 'currentProxy'], (result) => {
+      proxyConfigs = result.proxyConfigs || {
+        'direct': { mode: 'direct' },
+        'system': { mode: 'system' }
+      };
+      currentProxy = result.currentProxy || 'system';
+      sendResponse({ proxyConfigs, currentProxy });
+    });
+    return true; // 保持消息通道开放
   } else if (message.action === 'setCurrentProxy') {
-    chrome.storage.local.set({ currentProxy: message.proxyName });
-    sendResponse({ success: true });
+    currentProxy = message.proxyName;
+    chrome.storage.local.set({ currentProxy }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('保存当前代理失败:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log('当前代理已保存:', currentProxy);
+        sendResponse({ success: true });
+      }
+    });
+    return true; // 保持消息通道开放
   } else if (message.action === 'addProxyConfig') {
-    proxyConfigs[message.config.name] = message.config;
-    chrome.storage.local.set({ proxyConfigs });
-    sendResponse({ success: true });
+    const config = message.config;
+    proxyConfigs[config.name] = config;
+    
+    chrome.storage.local.set({ proxyConfigs }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('保存代理配置失败:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log('代理配置已保存:', config);
+        sendResponse({ success: true });
+      }
+    });
+    return true; // 保持消息通道开放
   } else if (message.action === 'removeProxyConfig') {
     if (message.proxyName !== 'direct' && message.proxyName !== 'system') {
       delete proxyConfigs[message.proxyName];
-      chrome.storage.local.set({ proxyConfigs });
-      if (currentProxy === message.proxyName) {
-        chrome.storage.local.set({ currentProxy: 'direct' });
-      }
-      sendResponse({ success: true });
+      
+      chrome.storage.local.set({ proxyConfigs }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('删除代理配置失败:', chrome.runtime.lastError);
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          console.log('代理配置已删除:', message.proxyName);
+          if (currentProxy === message.proxyName) {
+            currentProxy = 'direct';
+            chrome.storage.local.set({ currentProxy });
+          }
+          sendResponse({ success: true });
+        }
+      });
     } else {
       sendResponse({ success: false, error: '无法删除默认配置' });
     }
+    return true; // 保持消息通道开放
   } else if (message.action === 'testProxyConfig') {
     // 保存当前配置
     const previousProxy = currentProxy;

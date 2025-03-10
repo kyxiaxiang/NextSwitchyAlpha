@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>NextSwitchyAlpha</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <style>
     body {
       width: 320px;
@@ -179,6 +180,31 @@
       background-color: #3367d6;
     }
 
+    .btn-group {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn.edit {
+      background-color: #4caf50;
+      border-color: #4caf50;
+      color: white;
+    }
+
+    .btn.edit:hover {
+      background-color: #388e3c;
+    }
+
+    .btn.delete {
+      background-color: #f44336;
+      border-color: #f44336;
+      color: white;
+    }
+
+    .btn.delete:hover {
+      background-color: #d32f2f;
+    }
+
     .switch {
       position: relative;
       display: inline-block;
@@ -296,6 +322,45 @@
       font-size: 6px;
       font-weight: bold;
     }
+
+    .material-icons {
+      font-size: 18px;
+      line-height: 1;
+      vertical-align: middle;
+    }
+
+    .btn.icon {
+      padding: 4px;
+      min-width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn.icon:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .btn.icon.edit {
+      color: #4caf50;
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .btn.icon.delete {
+      color: #f44336;
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .btn.icon.edit:hover {
+      background-color: rgba(76, 175, 80, 0.1);
+    }
+
+    .btn.icon.delete:hover {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
   </style>
 </head>
 <body>
@@ -323,6 +388,11 @@
         <div class="input-group">
           <input type="text" id="proxy-host" placeholder="主机地址" data-placeholder-zh="主机地址" data-placeholder-en="Host Address">
           <input type="text" id="proxy-port" placeholder="端口" data-placeholder-zh="端口" data-placeholder-en="Port" style="width: 60px;">
+        </div>
+        <div class="input-group">
+          <textarea id="bypass-list" placeholder="不使用代理的地址，每行一个，例如: *.example.com" data-placeholder-zh="不使用代理的地址，每行一个，例如: *.example.com" data-placeholder-en="Bypass list, one per line, e.g.: *.example.com" style="width: 100%; height: 60px; margin-bottom: 8px;"></textarea>
+        </div>
+        <div class="input-group" style="justify-content: flex-end;">
           <button class="btn primary" id="add-proxy">
             <span data-text="zh">添加</span>
             <span data-text="en">Add</span>
