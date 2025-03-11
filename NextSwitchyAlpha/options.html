@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>简易代理切换器 - 选项</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>简易代理切换器 - 选项</h1>
+    </header>
+    
+    <main>
+      <section class="proxy-list-section">
+        <h2>代理列表</h2>
+        <div class="proxy-list" id="proxy-list"></div>
+      </section>
+      
+      <section class="headers-section">
+        <h2>请求头设置</h2>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="enable-headers">
+            启用请求头修改
+          </label>
+        </div>
+        
+        <div id="headers-options" style="display: none;">
+          <div class="form-group">
+            <label for="ip-value">IP地址</label>
+            <input type="text" id="ip-value" placeholder="输入要使用的IP地址，例如: 1.2.3.4">
+          </div>
+        </div>
+      </section>
+      
+      <section class="add-proxy-section" id="add-proxy-section" style="display: none;">
+        <h2>添加/编辑代理</h2>
+        <form id="proxy-form">
+          <input type="hidden" id="edit-mode" value="add">
+          
+          <div class="form-group">
+            <label for="proxy-name">代理名称</label>
+            <input type="text" id="proxy-name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="proxy-type">代理类型</label>
+            <select id="proxy-type">
+              <option value="fixed_servers">固定服务器</option>
+              <option value="pac_script">PAC脚本</option>
+            </select>
+          </div>
+          
+          <!-- 固定服务器选项 -->
+          <div id="fixed-server-options">
+            <div class="form-group">
+              <label for="proxy-scheme">协议</label>
+              <select id="proxy-scheme">
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+                <option value="socks4">SOCKS4</option>
+                <option value="socks5">SOCKS5</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="proxy-host">主机</label>
+              <input type="text" id="proxy-host" placeholder="例如: proxy.example.com">
+            </div>
+            
+            <div class="form-group">
+              <label for="proxy-port">端口</label>
+              <input type="number" id="proxy-port" placeholder="例如: 8080">
+            </div>
+            
+            <div class="form-group">
+              <label for="bypass-list">不使用代理的地址</label>
+              <textarea id="bypass-list" placeholder="每行一个地址，例如: *.example.com"></textarea>
+              <small>每行一个地址，支持通配符 (*)</small>
+            </div>
+          </div>
+          
+          <!-- PAC脚本选项 -->
+          <div id="pac-script-options" style="display: none;">
+            <div class="form-group">
+              <label>PAC脚本来源</label>
+              <div class="radio-group">
+                <label>
+                  <input type="radio" name="pac-source" value="url" checked>
+                  URL地址
+                </label>
+                <label>
+                  <input type="radio" name="pac-source" value="data">
+                  脚本内容
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="pac-url">PAC脚本URL</label>
+              <input type="text" id="pac-url" placeholder="例如: http://example.com/proxy.pac">
+            </div>
+            
+            <div class="form-group" style="display: none;">
+              <label for="pac-data">PAC脚本内容</label>
+              <textarea id="pac-data" placeholder="输入PAC脚本内容"></textarea>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn" id="cancel-btn">取消</button>
+            <button type="submit" class="btn primary">保存</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html> 

@@ -461,102 +461,110 @@ function initHeaderTools() {
       });
     });
   });
-}
 
-// 渲染自定义请求头列表
-function renderCustomHeaders(headers) {
-  const container = document.getElementById('custom-headers-list');
-  container.innerHTML = '';
-
-  headers.forEach((header, index) => {
-    const item = document.createElement('div');
-    item.className = 'input-group';
-    item.style.margin = '0';
-    item.style.backgroundColor = '#fff';
-    item.style.padding = '8px';
-    item.style.borderRadius = '4px';
-    item.style.border = '1px solid #eee';
-
-    // 开关
-    const switchLabel = document.createElement('label');
-    switchLabel.className = 'switch';
-    switchLabel.style.marginRight = '8px';
-    
-    const switchInput = document.createElement('input');
-    switchInput.type = 'checkbox';
-    switchInput.checked = header.enabled;
-    switchInput.addEventListener('change', () => {
-      header.enabled = switchInput.checked;
-      updateCustomHeader(headers);
+  // 更新自定义请求头
+  function updateCustomHeader(headers) {
+    chrome.storage.local.get(['customHeaders'], (result) => {
+      const settings = result.customHeaders || { enabled: false };
+      chrome.storage.local.set({
+        customHeaders: {
+          enabled: settings.enabled,
+          headers: headers
+        }
+      }, () => {
+        renderCustomHeaders(headers);
+        if (settings.enabled) {
+          updateCustomHeaderRules(true);
+        }
+      });
     });
+  }
 
-    const switchSpan = document.createElement('span');
-    switchSpan.className = 'slider';
+  // 更新自定义请求头规则
+  function updateCustomHeaderRules(enabled) {
+    chrome.storage.local.get(['customHeaders'], (result) => {
+      const settings = result.customHeaders;
+      if (!settings || !settings.headers || settings.headers.length === 0) return;
 
-    switchLabel.appendChild(switchInput);
-    switchLabel.appendChild(switchSpan);
+      const rules = settings.headers
+        .filter(header => header.enabled)
+        .map((header, index) => ({
+          id: 100 + index, // 使用100以上的ID，避免与其他规则冲突
+          priority: 1,
+          action: {
+            type: 'modifyHeaders',
+            requestHeaders: [{
+              header: header.name,
+              operation: 'set',
+              value: header.value
+            }]
+          },
+          condition: {
+            urlFilter: '*',
+            resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
+          }
+        }));
 
-    // 请求头信息
-    const info = document.createElement('div');
-    info.style.flex = '1';
-    info.style.overflow = 'hidden';
-    info.style.textOverflow = 'ellipsis';
-    info.style.whiteSpace = 'nowrap';
-    info.textContent = `${header.name}: ${header.value}`;
+      chrome.runtime.sendMessage({
+        action: 'updateHeaderRules',
+        rules: rules,
+        enabled: enabled
+      });
+    });
+  }
 
-    // 删除按钮
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn';
-    deleteBtn.style.marginLeft = '8px';
-    deleteBtn.style.padding = '2px 8px';
-    deleteBtn.textContent = '删除';
-    deleteBtn.onclick = () => {
-      headers.splice(index, 1);
-      updateCustomHeader(headers);
-    };
+  // 保存请求头IP
+  function saveXForwardedIP() {
+    const xforwardedIp = document.getElementById('xforwarded-ip');
+    const headerSelect = document.getElementById('header-select');
+    
+    const ip = xforwardedIp.value.trim();
+    if (!ip) {
+      alert('请输入IP地址');
+      return;
+    }
 
-    item.appendChild(switchLabel);
-    item.appendChild(info);
-    item.appendChild(deleteBtn);
-    container.appendChild(item);
-  });
-}
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipPattern.test(ip)) {
+      alert('请输入有效的IP地址');
+      return;
+    }
 
-// 更新自定义请求头
-function updateCustomHeader(headers) {
-  chrome.storage.local.get(['customHeaders'], (result) => {
-    const settings = result.customHeaders || { enabled: false };
+    // 获取所有选中的请求头
+    const selectedHeaders = Array.from(headerSelect.selectedOptions).map(option => option.value);
+    if (selectedHeaders.length === 0) {
+      alert('请至少选择一个请求头');
+      return;
+    }
+
     chrome.storage.local.set({
-      customHeaders: {
-        enabled: settings.enabled,
-        headers: headers
+      headerSettings: {
+        enabled: true,
+        ip: ip,
+        headers: selectedHeaders
       }
     }, () => {
-      renderCustomHeaders(headers);
-      if (settings.enabled) {
-        updateCustomHeaderRules(true);
-      }
+      document.getElementById('xforwarded-switch').checked = true;
+      document.getElementById('xforwarded-content').classList.add('show');
+      updateHeaderRules(true);
     });
-  });
-}
+  }
 
-// 更新自定义请求头规则
-function updateCustomHeaderRules(enabled) {
-  chrome.storage.local.get(['customHeaders'], (result) => {
-    const settings = result.customHeaders;
-    if (!settings || !settings.headers || settings.headers.length === 0) return;
+  // 更新请求头规则
+  function updateHeaderRules(enabled) {
+    chrome.storage.local.get(['headerSettings'], (result) => {
+      const settings = result.headerSettings;
+      if (!settings || !settings.ip || !settings.headers || settings.headers.length === 0) return;
 
-    const rules = settings.headers
-      .filter(header => header.enabled)
-      .map((header, index) => ({
-        id: 100 + index, // 使用100以上的ID，避免与其他规则冲突
+      const rules = settings.headers.map((header, index) => ({
+        id: index + 1,
         priority: 1,
         action: {
           type: 'modifyHeaders',
           requestHeaders: [{
-            header: header.name,
+            header: header,
             operation: 'set',
-            value: header.value
+            value: settings.ip
           }]
         },
         condition: {
@@ -565,234 +573,226 @@ function updateCustomHeaderRules(enabled) {
         }
       }));
 
-    chrome.runtime.sendMessage({
-      action: 'updateHeaderRules',
-      rules: rules,
-      enabled: enabled
+      chrome.runtime.sendMessage({
+        action: 'updateHeaderRules',
+        rules: rules,
+        enabled: enabled
+      });
     });
-  });
-}
-
-// 保存请求头IP
-function saveXForwardedIP() {
-  const xforwardedIp = document.getElementById('xforwarded-ip');
-  const headerSelect = document.getElementById('header-select');
-  
-  const ip = xforwardedIp.value.trim();
-  if (!ip) {
-    alert('请输入IP地址');
-    return;
   }
 
-  const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-  if (!ipPattern.test(ip)) {
-    alert('请输入有效的IP地址');
-    return;
-  }
+  // 更新User-Agent
+  function updateUserAgent(enabled) {
+    chrome.storage.local.get(['uaSettings'], (result) => {
+      const settings = result.uaSettings;
+      if (!settings || !settings.userAgent) return;
 
-  // 获取所有选中的请求头
-  const selectedHeaders = Array.from(headerSelect.selectedOptions).map(option => option.value);
-  if (selectedHeaders.length === 0) {
-    alert('请至少选择一个请求头');
-    return;
-  }
+      const rules = enabled ? [{
+        id: 51, // 使用51以避免与header规则冲突
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          requestHeaders: [{
+            header: 'User-Agent',
+            operation: 'set',
+            value: settings.userAgent
+          }]
+        },
+        condition: {
+          urlFilter: '*',
+          resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
+        }
+      }] : [];
 
-  chrome.storage.local.set({
-    headerSettings: {
-      enabled: true,
-      ip: ip,
-      headers: selectedHeaders
-    }
-  }, () => {
-    document.getElementById('xforwarded-switch').checked = true;
-    document.getElementById('xforwarded-content').classList.add('show');
-    updateHeaderRules(true);
-  });
-}
-
-// 更新请求头规则
-function updateHeaderRules(enabled) {
-  chrome.storage.local.get(['headerSettings'], (result) => {
-    const settings = result.headerSettings;
-    if (!settings || !settings.ip || !settings.headers || settings.headers.length === 0) return;
-
-    const rules = settings.headers.map((header, index) => ({
-      id: index + 1,
-      priority: 1,
-      action: {
-        type: 'modifyHeaders',
-        requestHeaders: [{
-          header: header,
-          operation: 'set',
-          value: settings.ip
-        }]
-      },
-      condition: {
-        urlFilter: '*',
-        resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-      }
-    }));
-
-    chrome.runtime.sendMessage({
-      action: 'updateHeaderRules',
-      rules: rules,
-      enabled: enabled
+      chrome.runtime.sendMessage({
+        action: 'updateHeaderRules',
+        rules: rules,
+        enabled: enabled
+      });
     });
-  });
-}
-
-// 更新User-Agent
-function updateUserAgent(enabled) {
-  chrome.storage.local.get(['uaSettings'], (result) => {
-    const settings = result.uaSettings;
-    if (!settings || !settings.userAgent) return;
-
-    const rules = enabled ? [{
-      id: 51, // 使用51以避免与header规则冲突
-      priority: 1,
-      action: {
-        type: 'modifyHeaders',
-        requestHeaders: [{
-          header: 'User-Agent',
-          operation: 'set',
-          value: settings.userAgent
-        }]
-      },
-      condition: {
-        urlFilter: '*',
-        resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-      }
-    }] : [];
-
-    chrome.runtime.sendMessage({
-      action: 'updateHeaderRules',
-      rules: rules,
-      enabled: enabled
-    });
-  });
-}
-
-// 编辑代理配置
-function editProxy(proxyName, config) {
-  const container = document.querySelector('.container');
-  const lang = container.getAttribute('data-lang') || 'zh';
-  
-  // 填充表单
-  document.getElementById('proxy-name').value = proxyName;
-  document.getElementById('proxy-scheme').value = config.scheme || 'http';
-  document.getElementById('proxy-host').value = config.host || '';
-  document.getElementById('proxy-port').value = config.port || '';
-  document.getElementById('bypass-list').value = (config.bypassList || []).join('\n');
-
-  // 修改添加按钮文本为保存
-  const addProxyBtn = document.getElementById('add-proxy');
-  addProxyBtn.innerHTML = `<span data-text="zh">保存</span><span data-text="en">Save</span>`;
-  
-  // 添加取消按钮
-  let cancelBtn = document.getElementById('cancel-edit');
-  if (!cancelBtn) {
-    cancelBtn = document.createElement('button');
-    cancelBtn.id = 'cancel-edit';
-    cancelBtn.className = 'btn';
-    cancelBtn.innerHTML = `<span data-text="zh">取消</span><span data-text="en">Cancel</span>`;
-    addProxyBtn.parentElement.insertBefore(cancelBtn, addProxyBtn);
   }
 
-  // 标记为编辑模式
-  addProxyBtn.dataset.editMode = 'true';
-  addProxyBtn.dataset.originalName = proxyName;
+  // 编辑代理配置
+  function editProxy(proxyName, config) {
+    const container = document.querySelector('.container');
+    const lang = container.getAttribute('data-lang') || 'zh';
+    
+    // 填充表单
+    document.getElementById('proxy-name').value = proxyName;
+    document.getElementById('proxy-scheme').value = config.scheme || 'http';
+    document.getElementById('proxy-host').value = config.host || '';
+    document.getElementById('proxy-port').value = config.port || '';
+    document.getElementById('bypass-list').value = (config.bypassList || []).join('\n');
 
-  // 取消编辑
-  cancelBtn.onclick = () => {
-    document.getElementById('proxy-name').value = '';
-    document.getElementById('proxy-host').value = '';
-    document.getElementById('proxy-port').value = '';
-    document.getElementById('bypass-list').value = '';
-    addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
-    addProxyBtn.dataset.editMode = 'false';
-    delete addProxyBtn.dataset.originalName;
-    cancelBtn.remove();
-  };
-
-  // 修改添加代理的处理逻辑
-  addProxyBtn.onclick = () => {
-    const name = document.getElementById('proxy-name').value.trim();
-    const scheme = document.getElementById('proxy-scheme').value;
-    const host = document.getElementById('proxy-host').value.trim();
-    const port = document.getElementById('proxy-port').value.trim();
-    const bypassList = document.getElementById('bypass-list').value.trim()
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-
-    if (!name || !host || !port) {
-      alert(lang === 'zh' ? '请填写完整信息' : 'Please fill in all fields');
-      return;
+    // 修改添加按钮文本为保存
+    const addProxyBtn = document.getElementById('add-proxy');
+    addProxyBtn.innerHTML = `<span data-text="zh">保存</span><span data-text="en">Save</span>`;
+    
+    // 添加取消按钮
+    let cancelBtn = document.getElementById('cancel-edit');
+    if (!cancelBtn) {
+      cancelBtn = document.createElement('button');
+      cancelBtn.id = 'cancel-edit';
+      cancelBtn.className = 'btn';
+      cancelBtn.innerHTML = `<span data-text="zh">取消</span><span data-text="en">Cancel</span>`;
+      addProxyBtn.parentElement.insertBefore(cancelBtn, addProxyBtn);
     }
 
-    const portNum = parseInt(port);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      alert(lang === 'zh' ? '端口号必须在1-65535之间' : 'Port must be between 1-65535');
-      return;
-    }
+    // 标记为编辑模式
+    addProxyBtn.dataset.editMode = 'true';
+    addProxyBtn.dataset.originalName = proxyName;
 
-    // 如果修改了名称，检查新名称是否可用
-    if (name !== proxyName && (name === 'direct' || name === 'system')) {
-      alert(lang === 'zh' ? 
-        '不能使用保留的代理名称（direct 或 system）' : 
-        'Cannot use reserved proxy names (direct or system)');
-      return;
-    }
-
-    const config = {
-      mode: 'fixed_servers',
-      scheme,
-      host,
-      port: portNum,
-      bypassList
+    // 取消编辑
+    cancelBtn.onclick = () => {
+      document.getElementById('proxy-name').value = '';
+      document.getElementById('proxy-host').value = '';
+      document.getElementById('proxy-port').value = '';
+      document.getElementById('bypass-list').value = '';
+      addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
+      addProxyBtn.dataset.editMode = 'false';
+      delete addProxyBtn.dataset.originalName;
+      cancelBtn.remove();
     };
 
-    // 如果是编辑模式且修改了名称，需要先删除原配置
-    if (name !== proxyName) {
-      chrome.runtime.sendMessage(
-        { action: 'removeProxyConfig', proxyName: proxyName },
-        (response) => {
-          if (response.success) {
-            addNewConfig();
-          }
-        }
-      );
-    } else {
-      addNewConfig();
-    }
+    // 修改添加代理的处理逻辑
+    addProxyBtn.onclick = () => {
+      const name = document.getElementById('proxy-name').value.trim();
+      const scheme = document.getElementById('proxy-scheme').value;
+      const host = document.getElementById('proxy-host').value.trim();
+      const port = document.getElementById('proxy-port').value.trim();
+      const bypassList = document.getElementById('bypass-list').value.trim()
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
 
-    function addNewConfig() {
-      chrome.runtime.sendMessage(
-        { action: 'addProxyConfig', proxyName: name, config },
-        (response) => {
-          if (response.success) {
-            // 清空表单
-            document.getElementById('proxy-name').value = '';
-            document.getElementById('proxy-host').value = '';
-            document.getElementById('proxy-port').value = '';
-            document.getElementById('bypass-list').value = '';
-            
-            // 恢复添加按钮
-            addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
-            addProxyBtn.dataset.editMode = 'false';
-            delete addProxyBtn.dataset.originalName;
-            cancelBtn.remove();
-            
-            // 重新加载代理列表
-            loadProxyList();
-          } else {
-            const errorMessage = lang === 'zh' ?
-              '保存代理失败：' + (response.error || '未知错误') :
-              'Failed to save proxy: ' + (response.error || 'Unknown error');
-            alert(errorMessage);
+      if (!name || !host || !port) {
+        alert(lang === 'zh' ? '请填写完整信息' : 'Please fill in all fields');
+        return;
+      }
+
+      const portNum = parseInt(port);
+      if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+        alert(lang === 'zh' ? '端口号必须在1-65535之间' : 'Port must be between 1-65535');
+        return;
+      }
+
+      // 如果修改了名称，检查新名称是否可用
+      if (name !== proxyName && (name === 'direct' || name === 'system')) {
+        alert(lang === 'zh' ? 
+          '不能使用保留的代理名称（direct 或 system）' : 
+          'Cannot use reserved proxy names (direct or system)');
+        return;
+      }
+
+      const config = {
+        mode: 'fixed_servers',
+        scheme,
+        host,
+        port: portNum,
+        bypassList
+      };
+
+      // 如果是编辑模式且修改了名称，需要先删除原配置
+      if (name !== proxyName) {
+        chrome.runtime.sendMessage(
+          { action: 'removeProxyConfig', proxyName: proxyName },
+          (response) => {
+            if (response.success) {
+              addNewConfig();
+            }
           }
-        }
-      );
-    }
-  };
+        );
+      } else {
+        addNewConfig();
+      }
+
+      function addNewConfig() {
+        chrome.runtime.sendMessage(
+          { action: 'addProxyConfig', proxyName: name, config },
+          (response) => {
+            if (response.success) {
+              // 清空表单
+              document.getElementById('proxy-name').value = '';
+              document.getElementById('proxy-host').value = '';
+              document.getElementById('proxy-port').value = '';
+              document.getElementById('bypass-list').value = '';
+              
+              // 恢复添加按钮
+              addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
+              addProxyBtn.dataset.editMode = 'false';
+              delete addProxyBtn.dataset.originalName;
+              cancelBtn.remove();
+              
+              // 重新加载代理列表
+              loadProxyList();
+            } else {
+              const errorMessage = lang === 'zh' ?
+                '保存代理失败：' + (response.error || '未知错误') :
+                'Failed to save proxy: ' + (response.error || 'Unknown error');
+              alert(errorMessage);
+            }
+          }
+        );
+      }
+    };
+  }
+
+  // 渲染自定义请求头列表
+  function renderCustomHeaders(headers) {
+    const container = document.getElementById('custom-headers-list');
+    container.innerHTML = '';
+
+    headers.forEach((header, index) => {
+      const item = document.createElement('div');
+      item.className = 'input-group';
+      item.style.margin = '0';
+      item.style.backgroundColor = '#fff';
+      item.style.padding = '8px';
+      item.style.borderRadius = '4px';
+      item.style.border = '1px solid #eee';
+
+      // 开关
+      const switchLabel = document.createElement('label');
+      switchLabel.className = 'switch';
+      switchLabel.style.marginRight = '8px';
+      
+      const switchInput = document.createElement('input');
+      switchInput.type = 'checkbox';
+      switchInput.checked = header.enabled;
+      switchInput.addEventListener('change', () => {
+        header.enabled = switchInput.checked;
+        updateCustomHeader(headers);
+      });
+
+      const switchSpan = document.createElement('span');
+      switchSpan.className = 'slider';
+
+      switchLabel.appendChild(switchInput);
+      switchLabel.appendChild(switchSpan);
+
+      // 请求头信息
+      const info = document.createElement('div');
+      info.style.flex = '1';
+      info.style.overflow = 'hidden';
+      info.style.textOverflow = 'ellipsis';
+      info.style.whiteSpace = 'nowrap';
+      info.textContent = `${header.name}: ${header.value}`;
+
+      // 删除按钮
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn';
+      deleteBtn.style.marginLeft = '8px';
+      deleteBtn.style.padding = '2px 8px';
+      deleteBtn.textContent = '删除';
+      deleteBtn.onclick = () => {
+        headers.splice(index, 1);
+        updateCustomHeader(headers);
+      };
+
+      item.appendChild(switchLabel);
+      item.appendChild(info);
+      item.appendChild(deleteBtn);
+      container.appendChild(item);
+    });
+  }
 }
