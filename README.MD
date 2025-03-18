@@ -7,9 +7,11 @@
 ## English Version
 
 ### Overview
+
 NextSwitchyAlpha is an all-in-one proxy switcher and header modifier designed as a powerful alternative to tools like Proxy SwitchyOmega, ModHeader, and X-Forwarded-For Header. It provides a simple yet robust solution for managing proxy settings and modifying HTTP request headers.
 
 ### Key Features
+
 - **Easy Proxy Management**
   - Quick switch between different proxy configurations.
   - Supports HTTP, HTTPS, SOCKS4, and SOCKS5 proxies.
@@ -34,12 +36,14 @@ NextSwitchyAlpha is an all-in-one proxy switcher and header modifier designed as
   - Open source and transparent.
 
 ### How to Use
+
 1. Click the extension icon to open the control panel.
 2. Switch between different proxy configurations.
 3. Enable or disable header modifications as needed.
 4. Customize headers and proxy settings with ease.
 
 ### Perfect For
+
 - Application testing by developers.
 - Network debugging.
 - Web scraping.
@@ -47,6 +51,7 @@ NextSwitchyAlpha is an all-in-one proxy switcher and header modifier designed as
 - Cross-region access.
 
 ### Future Plans
+
 We are actively developing NextSwitchyAlpha and your feedback is invaluable. Expect more features, optimizations, and improvements in upcoming releases.
 
 ---
@@ -54,9 +59,11 @@ We are actively developing NextSwitchyAlpha and your feedback is invaluable. Exp
 ## 中文版
 
 ### 概述
+
 NextSwitchyAlpha 是一款集代理切换与请求头修改于一体的 Chrome 插件，可完美替代 Proxy SwitchyOmega、ModHeader 以及 X-Forwarded-For Header 等工具，为您提供一个简单而强大的解决方案，以管理代理设置和修改 HTTP 请求头。
 
 ### 主要特性
+
 - **便捷的代理管理**
   - 快速切换不同的代理配置。
   - 支持 HTTP、HTTPS、SOCKS4 和 SOCKS5 代理。
@@ -81,12 +88,14 @@ NextSwitchyAlpha 是一款集代理切换与请求头修改于一体的 Chrome �
   - 开源透明。
 
 ### 使用方法
+
 1. 点击扩展图标打开控制面板。
 2. 切换不同的代理配置。
 3. 根据需要启用或禁用请求头修改功能。
 4. 轻松自定义请求头和代理设置。
 
 ### 适用场景
+
 - 开发人员测试应用
 - 网络调试
 - 网页数据采集
@@ -94,8 +103,9 @@ NextSwitchyAlpha 是一款集代理切换与请求头修改于一体的 Chrome �
 - 跨区域访问
 
 ### 后续计划
-当前版本为初始发布版本，可能尚未完全完善。我们正在持续改进中，期待您的反馈。扩展已提交至谷歌插件商店审核，请各位耐心等待，更多功能和优化将在未来版本中陆续推出！
+
+当前版本已成功上架，但仍处于持续优化阶段。我们重视您的反馈，并将不断改进，以提供更优质的体验。未来版本将陆续推出更多功能和优化，敬请期待！
 
 ---
 
-Thank you for trying NextSwitchyAlpha. We look forward to your feedback and are committed to delivering a better browsing experience.
+Thank you for trying NextSwitchyAlpha! The extension is now available, but we are continuously improving it. Your feedback is invaluable, and we are committed to delivering an even better browsing experience in future updates. Stay tuned!
