@@ -612,131 +612,6 @@ function initHeaderTools() {
     });
   }
 
-  // 编辑代理配置
-  function editProxy(proxyName, config) {
-    const container = document.querySelector('.container');
-    const lang = container.getAttribute('data-lang') || 'zh';
-    
-    // 填充表单
-    document.getElementById('proxy-name').value = proxyName;
-    document.getElementById('proxy-scheme').value = config.scheme || 'http';
-    document.getElementById('proxy-host').value = config.host || '';
-    document.getElementById('proxy-port').value = config.port || '';
-    document.getElementById('bypass-list').value = (config.bypassList || []).join('\n');
-
-    // 修改添加按钮文本为保存
-    const addProxyBtn = document.getElementById('add-proxy');
-    addProxyBtn.innerHTML = `<span data-text="zh">保存</span><span data-text="en">Save</span>`;
-    
-    // 添加取消按钮
-    let cancelBtn = document.getElementById('cancel-edit');
-    if (!cancelBtn) {
-      cancelBtn = document.createElement('button');
-      cancelBtn.id = 'cancel-edit';
-      cancelBtn.className = 'btn';
-      cancelBtn.innerHTML = `<span data-text="zh">取消</span><span data-text="en">Cancel</span>`;
-      addProxyBtn.parentElement.insertBefore(cancelBtn, addProxyBtn);
-    }
-
-    // 标记为编辑模式
-    addProxyBtn.dataset.editMode = 'true';
-    addProxyBtn.dataset.originalName = proxyName;
-
-    // 取消编辑
-    cancelBtn.onclick = () => {
-      document.getElementById('proxy-name').value = '';
-      document.getElementById('proxy-host').value = '';
-      document.getElementById('proxy-port').value = '';
-      document.getElementById('bypass-list').value = '';
-      addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
-      addProxyBtn.dataset.editMode = 'false';
-      delete addProxyBtn.dataset.originalName;
-      cancelBtn.remove();
-    };
-
-    // 修改添加代理的处理逻辑
-    addProxyBtn.onclick = () => {
-      const name = document.getElementById('proxy-name').value.trim();
-      const scheme = document.getElementById('proxy-scheme').value;
-      const host = document.getElementById('proxy-host').value.trim();
-      const port = document.getElementById('proxy-port').value.trim();
-      const bypassList = document.getElementById('bypass-list').value.trim()
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
-
-      if (!name || !host || !port) {
-        alert(lang === 'zh' ? '请填写完整信息' : 'Please fill in all fields');
-        return;
-      }
-
-      const portNum = parseInt(port);
-      if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-        alert(lang === 'zh' ? '端口号必须在1-65535之间' : 'Port must be between 1-65535');
-        return;
-      }
-
-      // 如果修改了名称，检查新名称是否可用
-      if (name !== proxyName && (name === 'direct' || name === 'system')) {
-        alert(lang === 'zh' ? 
-          '不能使用保留的代理名称（direct 或 system）' : 
-          'Cannot use reserved proxy names (direct or system)');
-        return;
-      }
-
-      const config = {
-        mode: 'fixed_servers',
-        scheme,
-        host,
-        port: portNum,
-        bypassList
-      };
-
-      // 如果是编辑模式且修改了名称，需要先删除原配置
-      if (name !== proxyName) {
-        chrome.runtime.sendMessage(
-          { action: 'removeProxyConfig', proxyName: proxyName },
-          (response) => {
-            if (response.success) {
-              addNewConfig();
-            }
-          }
-        );
-      } else {
-        addNewConfig();
-      }
-
-      function addNewConfig() {
-        chrome.runtime.sendMessage(
-          { action: 'addProxyConfig', proxyName: name, config },
-          (response) => {
-            if (response.success) {
-              // 清空表单
-              document.getElementById('proxy-name').value = '';
-              document.getElementById('proxy-host').value = '';
-              document.getElementById('proxy-port').value = '';
-              document.getElementById('bypass-list').value = '';
-              
-              // 恢复添加按钮
-              addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
-              addProxyBtn.dataset.editMode = 'false';
-              delete addProxyBtn.dataset.originalName;
-              cancelBtn.remove();
-              
-              // 重新加载代理列表
-              loadProxyList();
-            } else {
-              const errorMessage = lang === 'zh' ?
-                '保存代理失败：' + (response.error || '未知错误') :
-                'Failed to save proxy: ' + (response.error || 'Unknown error');
-              alert(errorMessage);
-            }
-          }
-        );
-      }
-    };
-  }
-
   // 渲染自定义请求头列表
   function renderCustomHeaders(headers) {
     const container = document.getElementById('custom-headers-list');
@@ -795,4 +670,137 @@ function initHeaderTools() {
       container.appendChild(item);
     });
   }
+}
+
+// 编辑代理配置
+function editProxy(proxyName, config) {
+  const container = document.querySelector('.container');
+  const lang = container.getAttribute('data-lang') || 'zh';
+  
+  // 填充表单
+  document.getElementById('proxy-name').value = proxyName;
+  document.getElementById('proxy-scheme').value = config.scheme || 'http';
+  document.getElementById('proxy-host').value = config.host || '';
+  document.getElementById('proxy-port').value = config.port || '';
+  document.getElementById('bypass-list').value = (config.bypassList || []).join('\n');
+
+  // 修改添加按钮文本为保存
+  const addProxyBtn = document.getElementById('add-proxy');
+  addProxyBtn.innerHTML = `<span data-text="zh">保存</span><span data-text="en">Save</span>`;
+  
+  // 添加取消按钮
+  let cancelBtn = document.getElementById('cancel-edit');
+  if (!cancelBtn) {
+    cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancel-edit';
+    cancelBtn.className = 'btn';
+    cancelBtn.innerHTML = `<span data-text="zh">取消</span><span data-text="en">Cancel</span>`;
+    addProxyBtn.parentElement.insertBefore(cancelBtn, addProxyBtn);
+  }
+
+  // 标记为编辑模式
+  addProxyBtn.dataset.editMode = 'true';
+  addProxyBtn.dataset.originalName = proxyName;
+
+  // 取消编辑
+  cancelBtn.onclick = () => {
+    document.getElementById('proxy-name').value = '';
+    document.getElementById('proxy-host').value = '';
+    document.getElementById('proxy-port').value = '';
+    document.getElementById('bypass-list').value = '';
+    addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
+    addProxyBtn.dataset.editMode = 'false';
+    delete addProxyBtn.dataset.originalName;
+    cancelBtn.remove();
+  };
+
+  // 修改添加代理的处理逻辑
+  addProxyBtn.onclick = () => {
+    const name = document.getElementById('proxy-name').value.trim();
+    const scheme = document.getElementById('proxy-scheme').value;
+    const host = document.getElementById('proxy-host').value.trim();
+    const port = document.getElementById('proxy-port').value.trim();
+    const bypassList = document.getElementById('bypass-list').value.trim()
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    if (!name || !host || !port) {
+      alert(lang === 'zh' ? '请填写完整信息' : 'Please fill in all fields');
+      return;
+    }
+
+    const portNum = parseInt(port);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      alert(lang === 'zh' ? '端口号必须在1-65535之间' : 'Port must be between 1-65535');
+      return;
+    }
+
+    // 如果修改了名称，检查新名称是否可用
+    if (name !== proxyName && (name === 'direct' || name === 'system')) {
+      alert(lang === 'zh' ? 
+        '不能使用保留的代理名称（direct 或 system）' : 
+        'Cannot use reserved proxy names (direct or system)');
+      return;
+    }
+
+    const newConfig = {
+      mode: 'fixed_servers',
+      scheme,
+      host,
+      port: portNum,
+      bypassList
+    };
+
+    // 如果是编辑模式且修改了名称，需要先删除原配置
+    if (name !== proxyName) {
+      chrome.runtime.sendMessage(
+        { action: 'removeProxyConfig', proxyName: proxyName },
+        (response) => {
+          if (response.success) {
+            addNewConfig(name, newConfig);
+          }
+        }
+      );
+    } else {
+      addNewConfig(name, newConfig);
+    }
+  };
+}
+
+function addNewConfig(name, config) {
+  const container = document.querySelector('.container');
+  const lang = container.getAttribute('data-lang') || 'zh';
+  
+  chrome.runtime.sendMessage(
+    { action: 'addProxyConfig', proxyName: name, config },
+    (response) => {
+      if (response.success) {
+        // 清空表单
+        document.getElementById('proxy-name').value = '';
+        document.getElementById('proxy-host').value = '';
+        document.getElementById('proxy-port').value = '';
+        document.getElementById('bypass-list').value = '';
+        
+        // 恢复添加按钮
+        const addProxyBtn = document.getElementById('add-proxy');
+        addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
+        addProxyBtn.dataset.editMode = 'false';
+        delete addProxyBtn.dataset.originalName;
+        
+        const cancelBtn = document.getElementById('cancel-edit');
+        if (cancelBtn) {
+          cancelBtn.remove();
+        }
+        
+        // 重新加载代理列表
+        loadProxyList();
+      } else {
+        const errorMessage = lang === 'zh' ?
+          '保存代理失败：' + (response.error || '未知错误') :
+          'Failed to save proxy: ' + (response.error || 'Unknown error');
+        alert(errorMessage);
+      }
+    }
+  );
 }

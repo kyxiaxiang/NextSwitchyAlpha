@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NextSwitchyAlpha",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "All-in-one proxy switcher and header modifier (Alternative to Proxy SwitchyOmega, ModHeader, and X-Forwarded-For Header)",
   "author": "可以遐想 (keyixiaxiang)",
   "homepage_url": "https://github.com/kyxiaxiang",
