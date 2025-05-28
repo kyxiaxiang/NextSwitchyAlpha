@@ -462,6 +462,143 @@ function initHeaderTools() {
     });
   });
 
+  // 为请求头名称输入框添加智能值建议
+  customHeaderName.addEventListener('input', () => {
+    const headerName = customHeaderName.value.trim();
+    if (headerName && customHeaderValue.value.trim() === '') {
+      // 根据请求头名称提供常见值建议
+      const commonValues = getCommonHeaderValues(headerName);
+      if (commonValues.length > 0) {
+        if (commonValues.length === 1) {
+          customHeaderValue.placeholder = `建议值: ${commonValues[0]} (双击填入)`;
+        } else {
+          customHeaderValue.placeholder = `建议值: ${commonValues[0]} (双击或Tab键切换，共${commonValues.length}个)`;
+        }
+        customHeaderValue.setAttribute('data-suggestions', JSON.stringify(commonValues));
+        currentSuggestionIndex = 0; // 重置索引
+      } else {
+        customHeaderValue.placeholder = customHeaderValue.getAttribute('data-placeholder-zh') || '请求头内容';
+        customHeaderValue.removeAttribute('data-suggestions');
+      }
+    }
+  });
+
+  // 为请求头值输入框添加双击填入建议值功能
+  customHeaderValue.addEventListener('dblclick', () => {
+    const suggestions = customHeaderValue.getAttribute('data-suggestions');
+    if (suggestions) {
+      const values = JSON.parse(suggestions);
+      if (values.length > 0) {
+        customHeaderValue.value = values[0];
+      }
+    }
+  });
+
+  // 为请求头值输入框添加键盘导航功能
+  let currentSuggestionIndex = 0;
+  customHeaderValue.addEventListener('keydown', (e) => {
+    const suggestions = customHeaderValue.getAttribute('data-suggestions');
+    if (suggestions && e.key === 'Tab' && !e.shiftKey) {
+      e.preventDefault();
+      const values = JSON.parse(suggestions);
+      if (values.length > 0) {
+        currentSuggestionIndex = (currentSuggestionIndex + 1) % values.length;
+        customHeaderValue.value = values[currentSuggestionIndex];
+        // 更新placeholder显示下一个建议
+        const nextIndex = (currentSuggestionIndex + 1) % values.length;
+        customHeaderValue.placeholder = `建议值: ${values[nextIndex]} (Tab键切换)`;
+      }
+    }
+  });
+
+  // 重置建议索引
+  customHeaderName.addEventListener('change', () => {
+    currentSuggestionIndex = 0;
+  });
+
+  // 清空名称输入框时重置值输入框
+  customHeaderName.addEventListener('input', () => {
+    if (customHeaderName.value.trim() === '') {
+      customHeaderValue.placeholder = customHeaderValue.getAttribute('data-placeholder-zh') || '请求头内容';
+      customHeaderValue.removeAttribute('data-suggestions');
+      currentSuggestionIndex = 0;
+    }
+  });
+
+  // 清空值输入框时重置建议索引
+  customHeaderValue.addEventListener('input', () => {
+    if (customHeaderValue.value.trim() === '') {
+      currentSuggestionIndex = 0;
+    }
+  });
+
+  // 获取常见请求头的推荐值
+  function getCommonHeaderValues(headerName) {
+    const commonValues = {
+      'Accept': [
+        'application/json',
+        'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'application/xml',
+        'text/plain',
+        '*/*'
+      ],
+      'Accept-Language': [
+        'zh-CN,zh;q=0.9,en;q=0.8',
+        'en-US,en;q=0.9',
+        'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2'
+      ],
+      'Accept-Encoding': [
+        'gzip, deflate, br',
+        'gzip, deflate',
+        'identity'
+      ],
+      'Content-Type': [
+        'application/json',
+        'application/x-www-form-urlencoded',
+        'text/html; charset=UTF-8',
+        'multipart/form-data',
+        'application/xml'
+      ],
+      'Cache-Control': [
+        'no-cache',
+        'max-age=0',
+        'no-store',
+        'must-revalidate'
+      ],
+      'Connection': [
+        'keep-alive',
+        'close'
+      ],
+      'DNT': ['1'],
+      'Upgrade-Insecure-Requests': ['1'],
+      'Sec-Fetch-Dest': ['document', 'script', 'style', 'image', 'empty'],
+      'Sec-Fetch-Mode': ['navigate', 'cors', 'no-cors', 'same-origin'],
+      'Sec-Fetch-Site': ['same-origin', 'cross-site', 'same-site', 'none'],
+      'Sec-Fetch-User': ['?1'],
+      'X-Requested-With': ['XMLHttpRequest'],
+      'X-Forwarded-For': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
+      'X-Real-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
+      'X-Originating-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
+      'X-Remote-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
+      'X-Client-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
+      'X-Forwarded-Proto': ['https', 'http'],
+      'X-API-Key': ['your-api-key-here'],
+      'Authorization': ['Bearer token', 'Basic credentials'],
+      'Referer': ['https://www.google.com/', 'https://www.baidu.com/'],
+      'Origin': ['https://example.com'],
+      'CF-Connecting-IP': ['127.0.0.1', '192.168.1.1'],
+      'True-Client-IP': ['127.0.0.1', '192.168.1.1']
+    };
+
+    const lowerHeaderName = headerName.toLowerCase();
+    for (const [key, values] of Object.entries(commonValues)) {
+      if (key.toLowerCase() === lowerHeaderName) {
+        return values;
+      }
+    }
+    return [];
+  }
+
   // 更新自定义请求头
   function updateCustomHeader(headers) {
     chrome.storage.local.get(['customHeaders'], (result) => {
@@ -772,8 +909,14 @@ function addNewConfig(name, config) {
   const container = document.querySelector('.container');
   const lang = container.getAttribute('data-lang') || 'zh';
   
+  // 添加name属性到config对象中
+  const configWithName = {
+    ...config,
+    name: name
+  };
+  
   chrome.runtime.sendMessage(
-    { action: 'addProxyConfig', proxyName: name, config },
+    { action: 'addProxyConfig', config: configWithName },
     (response) => {
       if (response.success) {
         // 清空表单

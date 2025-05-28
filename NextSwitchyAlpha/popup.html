@@ -156,6 +156,34 @@
       box-sizing: border-box;
     }
 
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #4285f4;
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+
+    /* 自定义请求头输入提示样式 */
+    #custom-header-value[data-suggestions] {
+      border-color: #ff9800;
+      background: linear-gradient(to right, #fff 95%, #fff3cd 100%);
+    }
+
+    #custom-header-value[data-suggestions]:focus {
+      border-color: #ff9800;
+      box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+    }
+
+    #custom-header-value[data-suggestions]::placeholder {
+      color: #ff9800;
+      font-style: italic;
+    }
+
+    /* datalist样式增强 */
+    #custom-header-name:focus {
+      border-color: #4285f4;
+      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+    }
+
     .btn {
       padding: 6px 12px;
       border: 1px solid #ddd;
@@ -476,7 +504,62 @@
             </div>
             <div class="input-group" style="margin-top: 12px;">
               <div class="custom-header-input">
-                <input type="text" id="custom-header-name" placeholder="请求头名称" data-placeholder-zh="请求头名称" data-placeholder-en="Header Name">
+                <input type="text" id="custom-header-name" placeholder="请求头名称" data-placeholder-zh="请求头名称" data-placeholder-en="Header Name" list="common-headers">
+                <datalist id="common-headers">
+                  <option value="Accept">
+                  <option value="Accept-Charset">
+                  <option value="Accept-Encoding">
+                  <option value="Accept-Language">
+                  <option value="Authorization">
+                  <option value="Cache-Control">
+                  <option value="Connection">
+                  <option value="Content-Type">
+                  <option value="Content-Length">
+                  <option value="Content-Encoding">
+                  <option value="Cookie">
+                  <option value="DNT">
+                  <option value="Host">
+                  <option value="If-Modified-Since">
+                  <option value="If-None-Match">
+                  <option value="Origin">
+                  <option value="Pragma">
+                  <option value="Referer">
+                  <option value="User-Agent">
+                  <option value="X-Forwarded-For">
+                  <option value="X-Forwarded-Proto">
+                  <option value="X-Forwarded-Host">
+                  <option value="X-Real-IP">
+                  <option value="X-Originating-IP">
+                  <option value="X-Remote-IP">
+                  <option value="X-Remote-Addr">
+                  <option value="X-Cluster-Client-IP">
+                  <option value="X-Requested-With">
+                  <option value="X-Custom-Header">
+                  <option value="X-API-Key">
+                  <option value="X-Auth-Token">
+                  <option value="X-Session-ID">
+                  <option value="X-Client-IP">
+                  <option value="X-Device-ID">
+                  <option value="X-App-Version">
+                  <option value="X-Platform">
+                  <option value="CF-Connecting-IP">
+                  <option value="CF-IPCountry">
+                  <option value="CF-Ray">
+                  <option value="True-Client-IP">
+                  <option value="Client-IP">
+                  <option value="Forwarded">
+                  <option value="Forwarded-For">
+                  <option value="Via">
+                  <option value="Vary">
+                  <option value="Upgrade-Insecure-Requests">
+                  <option value="Sec-Fetch-Dest">
+                  <option value="Sec-Fetch-Mode">
+                  <option value="Sec-Fetch-Site">
+                  <option value="Sec-Fetch-User">
+                  <option value="Sec-CH-UA">
+                  <option value="Sec-CH-UA-Mobile">
+                  <option value="Sec-CH-UA-Platform">
+                </datalist>
                 <input type="text" id="custom-header-value" placeholder="请求头内容" data-placeholder-zh="请求头内容" data-placeholder-en="Header Value">
               </div>
               <div class="custom-header-add">
@@ -485,6 +568,12 @@
                   <span data-text="en">Add</span>
                 </button>
               </div>
+            </div>
+            <div class="header-hint">
+              <small style="color: #666; font-size: 11px;">
+                <span data-text="zh">💡 输入请求头名称时会显示建议，有建议值时双击值输入框可快速填入</span>
+                <span data-text="en">💡 Header suggestions appear when typing, double-click value field to fill suggested values</span>
+              </small>
             </div>
           </div>
         </div>
