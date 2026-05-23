@@ -1,949 +1,871 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // 加载代理列表
-  loadProxyList();
+'use strict';
 
-  // 初始化请求头修改工具
-  initHeaderTools();
+// ====== i18n ======
+const I18N = {
+  zh: {
+    tab_proxy: '代理', tab_headers: '请求头', tab_rules: '规则', tab_settings: '设置',
+    proxy_form_title: '添加代理', proxy_name: '代理名称', proxy_host: '主机地址',
+    proxy_port: '端口', proxy_user: '用户名（可选）', proxy_pass: '密码（可选）',
+    proxy_bypass: '不代理的地址，每行一个\n例: *.local', proxy_color: '标签颜色',
+    pac_url: 'PAC URL, 例: http://...',
+    add_proxy: '+ 添加代理', edit_proxy: '编辑代理', save: '保存', cancel: '取消', add: '添加',
+    xff_headers: '选择要注入的头', xff_ip: 'IP 地址', xff_ip_ph: '例: 1.2.3.4（留空=自动随机）',
+    url_filter: 'URL 过滤（留空 = 全部）', url_filter_ph: '例: *.example.com',
+    ua_value: 'User-Agent 字符串', ua_ph: '输入 User-Agent 或选择预设',
+    ua_mobile: '移动端', ua_desktop: '桌面端', ua_crawler: '爬虫', ua_random: '随机',
+    random_btn: '随机',
+    custom_headers: '自定义请求头 / 响应头',
+    add_header_rule: '添加规则', header_name: 'Header 名称', header_value: '值',
+    req_header: 'REQ', res_header: 'RES',
+    op_set: '设置', op_append: '追加', op_remove: '删除',
+    auto_switch: '自动切换代理', add_rule: '+ 添加规则',
+    default_proxy: '默认代理:', rule_pattern: 'URL 模式',
+    rule_pattern_ph: '例: *.google.com 或 *github*',
+    wildcard: '通配符', regex: '正则', use_proxy: '使用代理', test: '测试',
+    test_url_ph: '测试 URL... 例: https://google.com',
+    appearance: '外观', theme: '主题', language: '语言',
+    theme_light: '浅色', theme_auto: '自动', theme_dark: '深色',
+    data_management: '数据管理', export_config: '导出配置',
+    import_config: '导入配置', reset_config: '恢复默认设置',
+    author_label: '作者: 可以遐想 (keyixiaxiang)',
+    tagline: '超越 SwitchyOmega · ModHeader · XFF Header',
+    direct: '直连', system: '系统代理',
+    auto_on: '自动切换已开启', auto_off: '自动切换已关闭',
+    saved: '已保存', deleted: '已删除', imported: '导入成功', reset_done: '已重置',
+    confirm_delete: '确认删除？', confirm_reset: '确认重置所有设置？',
+    err_name_required: '请输入代理名称', err_host_required: '请输入主机地址',
+    err_port_invalid: '端口无效（1-65535）', err_name_exists: '名称已存在',
+    err_ip_invalid: 'IP 地址格式不正确',
+    xff_saved: 'XFF 设置已保存', ua_saved: 'UA 设置已保存',
+    no_rules: '暂无规则，点击上方添加',
+    no_headers: '暂无规则，在下方添加',
+  },
+  en: {
+    tab_proxy: 'Proxy', tab_headers: 'Headers', tab_rules: 'Rules', tab_settings: 'Settings',
+    proxy_form_title: 'Add Proxy', proxy_name: 'Proxy Name', proxy_host: 'Host Address',
+    proxy_port: 'Port', proxy_user: 'Username (optional)', proxy_pass: 'Password (optional)',
+    proxy_bypass: 'Bypass list, one per line\ne.g. *.local', proxy_color: 'Label Color',
+    pac_url: 'PAC URL, e.g. http://...',
+    add_proxy: '+ Add Proxy', edit_proxy: 'Edit Proxy', save: 'Save', cancel: 'Cancel', add: 'Add',
+    xff_headers: 'Select headers to inject', xff_ip: 'IP Address', xff_ip_ph: 'e.g. 1.2.3.4 (empty = random)',
+    url_filter: 'URL Filter (empty = all)', url_filter_ph: 'e.g. *.example.com',
+    ua_value: 'User-Agent String', ua_ph: 'Enter User-Agent or choose preset',
+    ua_mobile: 'Mobile', ua_desktop: 'Desktop', ua_crawler: 'Crawler', ua_random: 'Random',
+    random_btn: 'Random',
+    custom_headers: 'Custom Request / Response Headers',
+    add_header_rule: 'Add Rule', header_name: 'Header Name', header_value: 'Value',
+    req_header: 'REQ', res_header: 'RES',
+    op_set: 'Set', op_append: 'Append', op_remove: 'Remove',
+    auto_switch: 'Auto-Switch Proxy', add_rule: '+ Add Rule',
+    default_proxy: 'Default proxy:', rule_pattern: 'URL Pattern',
+    rule_pattern_ph: 'e.g. *.google.com or *github*',
+    wildcard: 'Wildcard', regex: 'Regex', use_proxy: 'Use Proxy', test: 'Test',
+    test_url_ph: 'Test URL... e.g. https://google.com',
+    appearance: 'Appearance', theme: 'Theme', language: 'Language',
+    theme_light: 'Light', theme_auto: 'Auto', theme_dark: 'Dark',
+    data_management: 'Data Management', export_config: 'Export Config',
+    import_config: 'Import Config', reset_config: 'Reset to Defaults',
+    author_label: 'Author: keyixiaxiang',
+    tagline: 'Surpasses SwitchyOmega · ModHeader · XFF Header',
+    direct: 'Direct', system: 'System Proxy',
+    auto_on: 'Auto-switch enabled', auto_off: 'Auto-switch disabled',
+    saved: 'Saved', deleted: 'Deleted', imported: 'Imported', reset_done: 'Reset done',
+    confirm_delete: 'Confirm delete?', confirm_reset: 'Reset all settings?',
+    err_name_required: 'Please enter proxy name', err_host_required: 'Please enter host',
+    err_port_invalid: 'Invalid port (1-65535)', err_name_exists: 'Name already exists',
+    err_ip_invalid: 'Invalid IP address format',
+    xff_saved: 'XFF settings saved', ua_saved: 'UA settings saved',
+    no_rules: 'No rules yet. Click above to add.',
+    no_headers: 'No header rules yet. Add below.',
+  }
+};
 
-  // 初始化代理管理功能
-  initProxyManager();
-});
+const UA_PRESETS = {
+  mobile: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  desktop: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  crawler: 'Googlebot/2.1 (+http://www.google.com/bot.html)',
+};
 
-// 初始化代理管理功能
-function initProxyManager() {
-  const addProxyBtn = document.getElementById('add-proxy');
-  const proxyName = document.getElementById('proxy-name');
-  const proxyScheme = document.getElementById('proxy-scheme');
-  const proxyHost = document.getElementById('proxy-host');
-  const proxyPort = document.getElementById('proxy-port');
-  const bypassList = document.getElementById('bypass-list');
+const UA_POOL = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+];
 
-  addProxyBtn.addEventListener('click', () => {
-    const container = document.querySelector('.container');
-    const lang = container.getAttribute('data-lang') || 'zh';
+const HDR_SUGGESTIONS = {
+  request: ['Accept','Accept-Charset','Accept-Encoding','Accept-Language','Authorization',
+    'Cache-Control','Connection','Content-Type','Cookie','DNT','Host','If-Modified-Since',
+    'If-None-Match','Origin','Pragma','Referer','User-Agent','X-Forwarded-For',
+    'X-Forwarded-Proto','X-Forwarded-Host','X-Real-IP','X-Requested-With','X-API-Key',
+    'X-Auth-Token','X-Session-ID','X-Client-IP','X-Device-ID','X-App-Version',
+    'X-Platform','CF-Connecting-IP','True-Client-IP','Forwarded','Via'],
+  response: ['Access-Control-Allow-Origin','Access-Control-Allow-Methods','Access-Control-Allow-Headers',
+    'Access-Control-Allow-Credentials','Access-Control-Max-Age','Cache-Control',
+    'Content-Security-Policy','Content-Type','Referrer-Policy','Set-Cookie',
+    'Strict-Transport-Security','X-Content-Type-Options','X-Frame-Options',
+    'X-XSS-Protection','X-Powered-By','Server','ETag','Last-Modified','Vary','Timing-Allow-Origin']
+};
 
-    // 验证输入
-    const name = proxyName.value.trim();
-    if (!name) {
-      alert(lang === 'zh' ? '请输入代理名称' : 'Please enter proxy name');
-      return;
-    }
+// ====== State ======
+let appState = null;
+let lang = 'zh';
+let currentTheme = 'auto';
+let pfEditName = null;
+let rfEditId = null;
 
-    // 验证代理名称不能是保留名称
-    if (name === 'direct' || name === 'system') {
-      alert(lang === 'zh' ? 
-        '不能使用保留的代理名称（direct 或 system）' : 
-        'Cannot use reserved proxy names (direct or system)');
-      return;
-    }
+// ====== Utils ======
+function t(key) { return (I18N[lang] || I18N.zh)[key] || key; }
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function randomIp() { const o = () => Math.floor(Math.random() * 254) + 1; return `${o()}.${o()}.${o()}.${o()}`; }
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function isValidIp(ip) {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(n => +n >= 0 && +n <= 255);
+}
 
-    if (!proxyHost.value.trim()) {
-      alert(lang === 'zh' ? '请输入主机地址' : 'Please enter host address');
-      return;
-    }
-    if (!proxyPort.value.trim()) {
-      alert(lang === 'zh' ? '请输入端口' : 'Please enter port');
-      return;
-    }
+function proxyDisplayName(name, configs) {
+  if (name === 'direct') return t('direct');
+  if (name === 'system') return t('system');
+  return (configs || appState?.proxyConfigs || {})[name]?.name || name;
+}
 
-    const port = parseInt(proxyPort.value);
-    if (isNaN(port) || port < 1 || port > 65535) {
-      alert(lang === 'zh' ? 
-        '请输入有效的端口号（1-65535）' : 
-        'Please enter a valid port number (1-65535)');
-      return;
-    }
+function proxyDetail(cfg) {
+  if (!cfg || cfg.mode === 'direct') return '';
+  if (cfg.mode === 'system') return '';
+  if (cfg.mode === 'fixed_servers') return `${cfg.scheme || 'http'}://${cfg.host}:${cfg.port}`;
+  if (cfg.mode === 'pac_script') return cfg.pacUrl || 'Inline PAC';
+  return '';
+}
 
-    const bypassListValue = bypassList.value.trim()
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
+function proxyColor(name, cfg) {
+  if (name === 'direct') return '#10b981';
+  if (name === 'system') return '#6366f1';
+  return cfg?.color || '#6366f1';
+}
 
-    // 添加代理
-    const config = {
-      name: proxyName.value.trim(),
-      mode: 'fixed_servers',
-      scheme: proxyScheme.value,
-      host: proxyHost.value.trim(),
-      port: port,
-      bypassList: bypassListValue
-    };
+function showToast(msg, ms = 2200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+}
 
-    chrome.runtime.sendMessage(
-      { action: 'addProxyConfig', config },
-      (response) => {
-        if (response.success) {
-          // 清空输入
-          proxyName.value = '';
-          proxyHost.value = '';
-          proxyPort.value = '';
-          bypassList.value = '';
-          // 重新加载代理列表
-          loadProxyList();
-        } else {
-          const errorMessage = lang === 'zh' ?
-            '添加代理失败：' + (response.error || '未知错误') :
-            'Failed to add proxy: ' + (response.error || 'Unknown error');
-          alert(errorMessage);
-        }
-      }
-    );
+async function sendMsg(action, data = {}) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action, ...data }, res => {
+      if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+      if (!res) return reject(new Error('No response'));
+      if (!res.ok) return reject(new Error(res.error || 'Error'));
+      resolve(res.data);
+    });
   });
 }
 
-// 加载代理列表
-function loadProxyList() {
-  chrome.runtime.sendMessage({ action: 'getProxyConfigs' }, (response) => {
-    const { proxyConfigs, currentProxy } = response;
-    renderProxyList(proxyConfigs, currentProxy);
+// ====== Theme ======
+function applyTheme(theme) {
+  currentTheme = theme;
+  const dark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const labels = { auto: 'A', light: 'L', dark: 'D' };
+  document.getElementById('theme-btn').textContent = labels[theme] || 'A';
+  document.querySelectorAll('[data-theme-opt]').forEach(b => b.classList.toggle('active', b.dataset.themeOpt === theme));
+}
+
+// ====== Language ======
+function applyLanguage(newLang) {
+  lang = newLang;
+  document.getElementById('lang-btn').textContent = lang === 'zh' ? 'EN' : '中';
+  document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = t(el.getAttribute('data-i18n'));
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = v;
+    else el.textContent = v;
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.getAttribute('data-i18n-ph'));
+  });
+  if (appState) { renderProxyList(); renderHeaderRules(); renderRuleList(); populateProxySelects(); }
+}
+
+// ====== Status Bar ======
+function updateStatusBar() {
+  if (!appState) return;
+  const label = document.getElementById('status-label');
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot';
+
+  if (appState.autoSwitch?.enabled) {
+    label.textContent = 'Auto';
+    dot.classList.add('auto');
+    return;
+  }
+
+  const name = appState.currentProxy || 'direct';
+  label.textContent = proxyDisplayName(name, appState.proxyConfigs);
+  dot.classList.add(name === 'direct' ? 'active' : 'proxy');
+}
+
+// ====== Tabs ======
+function initTabs() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
   });
 }
 
-// 渲染代理列表
-function renderProxyList(proxyConfigs, currentProxy) {
-  const proxyList = document.getElementById('proxy-list');
-  const container = document.querySelector('.container');
-  const lang = container.getAttribute('data-lang') || 'zh';
-  proxyList.innerHTML = '';
+// ====== Proxy Panel ======
+function renderProxyList() {
+  const list = document.getElementById('proxy-list');
+  const { proxyConfigs = {}, currentProxy, autoSwitch } = appState;
+  const activeProxy = autoSwitch?.enabled ? null : currentProxy;
 
-  // 确保默认代理配置存在
-  if (!proxyConfigs.direct) {
-    proxyConfigs.direct = { mode: 'direct' };
-  }
-  if (!proxyConfigs.system) {
-    proxyConfigs.system = { mode: 'system' };
-  }
+  const defaults = ['direct', 'system'].filter(n => proxyConfigs[n]).map(n => ({ name: n, cfg: proxyConfigs[n], isDefault: true }));
+  const customs = Object.entries(proxyConfigs)
+    .filter(([n]) => n !== 'direct' && n !== 'system')
+    .map(([name, cfg]) => ({ name, cfg, isDefault: false }));
 
-  // 排序：直连和系统代理放在前面，其他按字母顺序排序
-  const sortedProxyNames = Object.keys(proxyConfigs).sort((a, b) => {
-    if (a === 'direct') return -1;
-    if (b === 'direct') return 1;
-    if (a === 'system') return -1;
-    if (b === 'system') return 1;
-    return a.localeCompare(b);
-  });
+  const all = [...defaults, ...customs];
+  if (!all.length) { list.innerHTML = ''; return; }
 
-  sortedProxyNames.forEach(proxyName => {
-    const config = proxyConfigs[proxyName];
+  list.innerHTML = '';
+  all.forEach(({ name, cfg, isDefault }, idx) => {
+    if (idx === 2 && customs.length > 0) {
+      const sep = document.createElement('div'); sep.className = 'proxy-divider'; list.appendChild(sep);
+    }
+
     const item = document.createElement('div');
-    item.className = 'proxy-item';
-    if (proxyName === currentProxy) {
-      item.classList.add('active');
-    }
+    item.className = 'proxy-item' + (name === activeProxy ? ' active' : '');
 
-    const name = document.createElement('div');
-    name.className = 'proxy-name';
-    name.textContent = getDisplayName(proxyName, lang);
+    const color = proxyColor(name, cfg);
+    const detail = proxyDetail(cfg);
+    const badge = (!isDefault && cfg.scheme) ? escapeHtml(cfg.scheme.toUpperCase()) : '';
+    const sysDot = name === 'system' ? `<span class="proxy-sys-dot" id="sys-dot"></span>` : '';
 
-    // 为当前选中的代理添加状态指示器
-    if (proxyName === currentProxy) {
-      const statusDot = document.createElement('span');
-      statusDot.className = 'system-proxy-status';
-      name.appendChild(statusDot);
-      // 检查代理状态
-      checkProxyStatus();
-    }
+    item.innerHTML = `
+      <span class="proxy-color-dot" style="background:${escapeHtml(color)}"></span>
+      <div class="proxy-info">
+        <div class="proxy-name">${escapeHtml(proxyDisplayName(name, proxyConfigs))}</div>
+        ${detail ? `<div class="proxy-detail">${escapeHtml(detail)}</div>` : ''}
+      </div>
+      ${badge ? `<span class="proxy-badge">${badge}</span>` : ''}
+      ${sysDot}
+      <div class="proxy-item-actions">
+        ${!isDefault ? `<button class="btn btn-icon" data-edit="${escapeHtml(name)}">&#9998;</button>` : ''}
+        ${!isDefault ? `<button class="btn btn-icon danger" data-del="${escapeHtml(name)}">&#10005;</button>` : ''}
+      </div>
+    `;
 
-    const detail = document.createElement('div');
-    detail.className = 'proxy-detail';
-    detail.textContent = getProxyDetail(proxyName, config, lang);
-
-    item.appendChild(name);
-    item.appendChild(detail);
-
-    // 添加编辑和删除按钮（仅对非默认代理）
-    if (proxyName !== 'direct' && proxyName !== 'system') {
-      const btnGroup = document.createElement('div');
-      btnGroup.className = 'btn-group';
-      btnGroup.style.marginLeft = '8px';
-
-      // 编辑按钮
-      const editBtn = document.createElement('button');
-      editBtn.className = 'btn icon edit';
-      editBtn.title = lang === 'zh' ? '编辑' : 'Edit';
-      editBtn.innerHTML = '<span class="material-icons">edit</span>';
-      editBtn.onclick = (e) => {
-        e.stopPropagation();
-        editProxy(proxyName, config);
-      };
-
-      // 删除按钮
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn icon delete';
-      deleteBtn.title = lang === 'zh' ? '删除' : 'Delete';
-      deleteBtn.innerHTML = '<span class="material-icons">delete</span>';
-      deleteBtn.onclick = (e) => {
-        e.stopPropagation();
-        const confirmMessage = lang === 'zh' ? 
-          '确定要删除此代理吗？' : 
-          'Are you sure you want to delete this proxy?';
-        if (confirm(confirmMessage)) {
-          chrome.runtime.sendMessage(
-            { action: 'removeProxyConfig', proxyName },
-            (response) => {
-              if (response.success) {
-                loadProxyList();
-              } else {
-                const errorMessage = lang === 'zh' ?
-                  '删除代理失败：' + (response.error || '未知错误') :
-                  'Failed to delete proxy: ' + (response.error || 'Unknown error');
-                alert(errorMessage);
-              }
-            }
-          );
-        }
-      };
-
-      btnGroup.appendChild(editBtn);
-      btnGroup.appendChild(deleteBtn);
-      detail.appendChild(btnGroup);
-    }
-
-    item.addEventListener('click', () => {
-      switchProxy(proxyName);
+    item.addEventListener('click', e => {
+      const editBtn = e.target.closest('[data-edit]');
+      const delBtn = e.target.closest('[data-del]');
+      if (editBtn) { startEditProxy(editBtn.dataset.edit); return; }
+      if (delBtn) { deleteProxy(delBtn.dataset.del); return; }
+      switchProxy(name);
     });
 
-    proxyList.appendChild(item);
+    list.appendChild(item);
   });
 }
 
-// 获取显示名称
-function getDisplayName(proxyName, lang = 'zh') {
-  switch (proxyName) {
-    case 'direct':
-      return lang === 'zh' ? '直接连接' : 'Direct Connection';
-    case 'system':
-      return lang === 'zh' ? '系统代理' : 'System Proxy';
-    default:
-      return proxyName;
-  }
+async function switchProxy(name) {
+  try {
+    await sendMsg('setCurrentProxy', { name });
+    appState.currentProxy = name;
+    renderProxyList();
+    updateStatusBar();
+  } catch (e) { showToast('Error: ' + e.message); }
 }
 
-// 获取代理详情
-function getProxyDetail(proxyName, config, lang = 'zh') {
-  switch (proxyName) {
-    case 'direct':
-      return lang === 'zh' ? '不使用代理' : 'No Proxy';
-    case 'system':
-      return lang === 'zh' ? '系统设置' : 'System Settings';
-    default:
-      if (config.mode === 'fixed_servers') {
-        let detail = `${config.scheme}://${config.host}:${config.port}`;
-        if (config.bypassList && config.bypassList.length > 0) {
-          detail += lang === 'zh' ? 
-            ` (${config.bypassList.length}个过滤规则)` : 
-            ` (${config.bypassList.length} bypass rules)`;
-        }
-        return detail;
-      } else if (config.mode === 'pac_script') {
-        return 'PAC Script';
-      }
-      return '';
-  }
-}
+function initProxyPanel() {
+  document.getElementById('pf-type').addEventListener('change', updateProxyFormFields);
 
-// 切换代理
-function switchProxy(proxyName) {
-  chrome.runtime.sendMessage(
-    { action: 'setCurrentProxy', proxyName },
-    (response) => {
-      if (response.success) {
-        loadProxyList();
-      }
-    }
-  );
-}
+  document.getElementById('btn-add-proxy').addEventListener('click', () => {
+    pfEditName = null;
+    resetProxyForm();
+    document.getElementById('proxy-form-title').textContent = t('proxy_form_title');
+    document.getElementById('pf-name').disabled = false;
+    document.getElementById('proxy-form-wrap').style.display = 'block';
+    document.getElementById('btn-add-proxy').style.display = 'none';
+    updateProxyFormFields();
+  });
 
-// 检查代理状态
-function checkProxyStatus() {
-  chrome.proxy.settings.get({}, (config) => {
-    const statusDot = document.querySelector('.system-proxy-status');
-    if (statusDot) {
-      const isWorking = config.value.mode === config.value.mode;
-      statusDot.className = `system-proxy-status ${isWorking ? 'active' : 'error'}`;
-      statusDot.title = isWorking ? 
-        '代理工作正常' :
-        '代理可能未生效';
-    }
+  document.getElementById('pf-cancel').addEventListener('click', hideProxyForm);
+  document.getElementById('pf-save').addEventListener('click', saveProxy);
+
+  document.querySelectorAll('.color-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+    });
   });
 }
 
-// 初始化请求头修改工具
-function initHeaderTools() {
-  // 请求头相关元素
-  const xforwardedSwitch = document.getElementById('xforwarded-switch');
-  const xforwardedContent = document.getElementById('xforwarded-content');
-  const xforwardedIp = document.getElementById('xforwarded-ip');
-  const xforwardedSave = document.getElementById('xforwarded-save');
-  const headerSelect = document.getElementById('header-select');
-
-  // 自定义请求头相关元素
-  const customHeadersSwitch = document.getElementById('custom-headers-switch');
-  const customHeadersContent = document.getElementById('custom-headers-content');
-  const customHeadersList = document.getElementById('custom-headers-list');
-  const customHeaderName = document.getElementById('custom-header-name');
-  const customHeaderValue = document.getElementById('custom-header-value');
-  const addCustomHeaderBtn = document.getElementById('add-custom-header');
-
-  // User-Agent 相关元素
-  const uaSwitch = document.getElementById('ua-switch');
-  const uaContent = document.getElementById('ua-content');
-  const uaValue = document.getElementById('ua-value');
-  const uaSave = document.getElementById('ua-save');
-  const uaMobile = document.getElementById('ua-mobile');
-  const uaDesktop = document.getElementById('ua-desktop');
-
-  // 预设的User-Agent值
-  const mobileUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1';
-  const desktopUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-
-  // 加载保存的设置
-  chrome.storage.local.get(['headerSettings', 'uaSettings', 'customHeaders'], (result) => {
-    // 请求头设置
-    const headerSettings = result.headerSettings || { enabled: false, ip: '', headers: [] };
-    xforwardedSwitch.checked = headerSettings.enabled;
-    xforwardedContent.classList.toggle('show', headerSettings.enabled);
-    xforwardedIp.value = headerSettings.ip || '';
-    
-    // 设置已选择的请求头
-    if (headerSettings.headers && headerSettings.headers.length > 0) {
-      Array.from(headerSelect.options).forEach(option => {
-        option.selected = headerSettings.headers.includes(option.value);
-      });
-    }
-
-    // User-Agent 设置
-    const uaSettings = result.uaSettings || { enabled: false, userAgent: '' };
-    uaSwitch.checked = uaSettings.enabled;
-    uaContent.classList.toggle('show', uaSettings.enabled);
-    uaValue.value = uaSettings.userAgent || '';
-
-    // 自定义请求头设置
-    const customHeaders = result.customHeaders || { enabled: false, headers: [] };
-    customHeadersSwitch.checked = customHeaders.enabled;
-    customHeadersContent.classList.toggle('show', customHeaders.enabled);
-    renderCustomHeaders(customHeaders.headers);
+function updateProxyFormFields() {
+  const type = document.getElementById('pf-type').value;
+  const serverTypes = ['http','https','socks4','socks5'];
+  document.querySelectorAll('.pf-server-fields').forEach(el => {
+    el.style.display = serverTypes.includes(type) ? 'block' : 'none';
   });
-
-  // 请求头开关事件
-  xforwardedSwitch.addEventListener('change', () => {
-    const enabled = xforwardedSwitch.checked;
-    xforwardedContent.classList.toggle('show', enabled);
-    
-    chrome.storage.local.get(['headerSettings'], (result) => {
-      const settings = result.headerSettings || { ip: '', headers: [] };
-      chrome.storage.local.set({
-        headerSettings: {
-          ...settings,
-          enabled: enabled
-        }
-      }, () => {
-        updateHeaderRules(enabled);
-      });
-    });
+  document.querySelectorAll('.pf-pac-url-field').forEach(el => {
+    el.style.display = type === 'pac_url' ? 'block' : 'none';
   });
-
-  // 请求头保存按钮事件
-  xforwardedSave.addEventListener('click', () => {
-    saveXForwardedIP();
+  document.querySelectorAll('.pf-pac-script-field').forEach(el => {
+    el.style.display = type === 'pac_script' ? 'block' : 'none';
   });
+}
 
-  // 请求头选择事件
-  headerSelect.addEventListener('change', () => {
-    if (xforwardedSwitch.checked) {
-      saveXForwardedIP();
-    }
+function resetProxyForm() {
+  ['pf-name','pf-host','pf-port','pf-user','pf-pass','pf-bypass','pf-pac-url','pf-pac-script'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
+  document.getElementById('pf-type').value = 'http';
+  document.querySelectorAll('.color-opt').forEach((o, i) => o.classList.toggle('selected', i === 0));
+}
 
-  // User-Agent 开关事件
-  uaSwitch.addEventListener('change', () => {
-    const enabled = uaSwitch.checked;
-    uaContent.classList.toggle('show', enabled);
-    
-    chrome.storage.local.get(['uaSettings'], (result) => {
-      const settings = result.uaSettings || { userAgent: '' };
-      chrome.storage.local.set({
-        uaSettings: {
-          ...settings,
-          enabled: enabled
-        }
-      }, () => {
-        updateUserAgent(enabled);
-      });
-    });
-  });
+function startEditProxy(name) {
+  const cfg = appState.proxyConfigs[name];
+  if (!cfg) return;
+  pfEditName = name;
+  resetProxyForm();
+  document.getElementById('proxy-form-title').textContent = t('edit_proxy');
+  document.getElementById('pf-name').value = name;
+  document.getElementById('pf-name').disabled = true;
 
-  // User-Agent 保存按钮事件
-  uaSave.addEventListener('click', () => {
-    const userAgent = uaValue.value.trim();
-    if (!userAgent) {
-      alert('请输入User-Agent');
-      return;
-    }
+  const schemeToType = { http:'http', https:'https', socks4:'socks4', socks5:'socks5' };
+  if (cfg.mode === 'fixed_servers') document.getElementById('pf-type').value = schemeToType[cfg.scheme] || 'http';
+  else if (cfg.mode === 'pac_script') document.getElementById('pf-type').value = cfg.pacUrl ? 'pac_url' : 'pac_script';
 
-    chrome.storage.local.set({
-      uaSettings: {
-        enabled: uaSwitch.checked,
-        userAgent: userAgent
-      }
-    }, () => {
-      updateUserAgent(uaSwitch.checked);
-      alert('User-Agent已保存');
-    });
-  });
+  document.getElementById('pf-host').value = cfg.host || '';
+  document.getElementById('pf-port').value = cfg.port || '';
+  document.getElementById('pf-user').value = cfg.username || '';
+  document.getElementById('pf-pass').value = cfg.password || '';
+  document.getElementById('pf-bypass').value = (cfg.bypassList || []).join('\n');
+  document.getElementById('pf-pac-url').value = cfg.pacUrl || '';
+  document.getElementById('pf-pac-script').value = cfg.pacData || '';
 
-  // 移动端UA按钮事件
-  uaMobile.addEventListener('click', () => {
-    uaValue.value = mobileUA;
-  });
+  const color = cfg.color || '#6366f1';
+  document.querySelectorAll('.color-opt').forEach(o => o.classList.toggle('selected', o.dataset.color === color));
 
-  // 桌面端UA按钮事件
-  uaDesktop.addEventListener('click', () => {
-    uaValue.value = desktopUA;
-  });
+  document.getElementById('proxy-form-wrap').style.display = 'block';
+  document.getElementById('btn-add-proxy').style.display = 'none';
+  updateProxyFormFields();
+}
 
-  // 自定义请求头开关事件
-  customHeadersSwitch.addEventListener('change', () => {
-    const enabled = customHeadersSwitch.checked;
-    customHeadersContent.classList.toggle('show', enabled);
-    
-    chrome.storage.local.get(['customHeaders'], (result) => {
-      const settings = result.customHeaders || { headers: [] };
-      chrome.storage.local.set({
-        customHeaders: {
-          ...settings,
-          enabled: enabled
-        }
-      }, () => {
-        updateCustomHeaderRules(enabled);
-      });
-    });
-  });
+function hideProxyForm() {
+  document.getElementById('proxy-form-wrap').style.display = 'none';
+  document.getElementById('btn-add-proxy').style.display = '';
+  document.getElementById('pf-name').disabled = false;
+  pfEditName = null;
+}
 
-  // 添加自定义请求头按钮事件
-  addCustomHeaderBtn.addEventListener('click', () => {
-    const name = customHeaderName.value.trim();
-    const value = customHeaderValue.value.trim();
+async function saveProxy() {
+  const name = pfEditName || document.getElementById('pf-name').value.trim();
+  const type = document.getElementById('pf-type').value;
 
-    if (!name) {
-      alert('请输入请求头名称');
-      return;
-    }
-    if (!value) {
-      alert('请输入请求头内容');
-      return;
-    }
+  if (!name) { showToast(t('err_name_required')); return; }
+  if (!pfEditName && appState.proxyConfigs[name]) { showToast(t('err_name_exists')); return; }
 
-    chrome.storage.local.get(['customHeaders'], (result) => {
-      const settings = result.customHeaders || { enabled: false, headers: [] };
-      const headers = settings.headers || [];
-      
-      // 检查是否已存在相同名称的请求头
-      const existingIndex = headers.findIndex(h => h.name.toLowerCase() === name.toLowerCase());
-      if (existingIndex !== -1) {
-        headers[existingIndex] = { name, value, enabled: true };
-      } else {
-        headers.push({ name, value, enabled: true });
-      }
+  const color = document.querySelector('.color-opt.selected')?.dataset.color || '#6366f1';
+  let config;
 
-      chrome.storage.local.set({
-        customHeaders: {
-          enabled: settings.enabled,
-          headers: headers
-        }
-      }, () => {
-        customHeaderName.value = '';
-        customHeaderValue.value = '';
-        renderCustomHeaders(headers);
-        if (settings.enabled) {
-          updateCustomHeaderRules(true);
-        }
-      });
-    });
-  });
+  if (['http','https','socks4','socks5'].includes(type)) {
+    const host = document.getElementById('pf-host').value.trim();
+    const port = parseInt(document.getElementById('pf-port').value.trim());
+    if (!host) { showToast(t('err_host_required')); return; }
+    if (!port || port < 1 || port > 65535) { showToast(t('err_port_invalid')); return; }
 
-  // 为请求头名称输入框添加智能值建议
-  customHeaderName.addEventListener('input', () => {
-    const headerName = customHeaderName.value.trim();
-    if (headerName && customHeaderValue.value.trim() === '') {
-      // 根据请求头名称提供常见值建议
-      const commonValues = getCommonHeaderValues(headerName);
-      if (commonValues.length > 0) {
-        if (commonValues.length === 1) {
-          customHeaderValue.placeholder = `建议值: ${commonValues[0]} (双击填入)`;
-        } else {
-          customHeaderValue.placeholder = `建议值: ${commonValues[0]} (双击或Tab键切换，共${commonValues.length}个)`;
-        }
-        customHeaderValue.setAttribute('data-suggestions', JSON.stringify(commonValues));
-        currentSuggestionIndex = 0; // 重置索引
-      } else {
-        customHeaderValue.placeholder = customHeaderValue.getAttribute('data-placeholder-zh') || '请求头内容';
-        customHeaderValue.removeAttribute('data-suggestions');
-      }
-    }
-  });
-
-  // 为请求头值输入框添加双击填入建议值功能
-  customHeaderValue.addEventListener('dblclick', () => {
-    const suggestions = customHeaderValue.getAttribute('data-suggestions');
-    if (suggestions) {
-      const values = JSON.parse(suggestions);
-      if (values.length > 0) {
-        customHeaderValue.value = values[0];
-      }
-    }
-  });
-
-  // 为请求头值输入框添加键盘导航功能
-  let currentSuggestionIndex = 0;
-  customHeaderValue.addEventListener('keydown', (e) => {
-    const suggestions = customHeaderValue.getAttribute('data-suggestions');
-    if (suggestions && e.key === 'Tab' && !e.shiftKey) {
-      e.preventDefault();
-      const values = JSON.parse(suggestions);
-      if (values.length > 0) {
-        currentSuggestionIndex = (currentSuggestionIndex + 1) % values.length;
-        customHeaderValue.value = values[currentSuggestionIndex];
-        // 更新placeholder显示下一个建议
-        const nextIndex = (currentSuggestionIndex + 1) % values.length;
-        customHeaderValue.placeholder = `建议值: ${values[nextIndex]} (Tab键切换)`;
-      }
-    }
-  });
-
-  // 重置建议索引
-  customHeaderName.addEventListener('change', () => {
-    currentSuggestionIndex = 0;
-  });
-
-  // 清空名称输入框时重置值输入框
-  customHeaderName.addEventListener('input', () => {
-    if (customHeaderName.value.trim() === '') {
-      customHeaderValue.placeholder = customHeaderValue.getAttribute('data-placeholder-zh') || '请求头内容';
-      customHeaderValue.removeAttribute('data-suggestions');
-      currentSuggestionIndex = 0;
-    }
-  });
-
-  // 清空值输入框时重置建议索引
-  customHeaderValue.addEventListener('input', () => {
-    if (customHeaderValue.value.trim() === '') {
-      currentSuggestionIndex = 0;
-    }
-  });
-
-  // 获取常见请求头的推荐值
-  function getCommonHeaderValues(headerName) {
-    const commonValues = {
-      'Accept': [
-        'application/json',
-        'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'application/xml',
-        'text/plain',
-        '*/*'
-      ],
-      'Accept-Language': [
-        'zh-CN,zh;q=0.9,en;q=0.8',
-        'en-US,en;q=0.9',
-        'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2'
-      ],
-      'Accept-Encoding': [
-        'gzip, deflate, br',
-        'gzip, deflate',
-        'identity'
-      ],
-      'Content-Type': [
-        'application/json',
-        'application/x-www-form-urlencoded',
-        'text/html; charset=UTF-8',
-        'multipart/form-data',
-        'application/xml'
-      ],
-      'Cache-Control': [
-        'no-cache',
-        'max-age=0',
-        'no-store',
-        'must-revalidate'
-      ],
-      'Connection': [
-        'keep-alive',
-        'close'
-      ],
-      'DNT': ['1'],
-      'Upgrade-Insecure-Requests': ['1'],
-      'Sec-Fetch-Dest': ['document', 'script', 'style', 'image', 'empty'],
-      'Sec-Fetch-Mode': ['navigate', 'cors', 'no-cors', 'same-origin'],
-      'Sec-Fetch-Site': ['same-origin', 'cross-site', 'same-site', 'none'],
-      'Sec-Fetch-User': ['?1'],
-      'X-Requested-With': ['XMLHttpRequest'],
-      'X-Forwarded-For': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
-      'X-Real-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
-      'X-Originating-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
-      'X-Remote-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
-      'X-Client-IP': ['127.0.0.1', '192.168.1.1', '10.0.0.1'],
-      'X-Forwarded-Proto': ['https', 'http'],
-      'X-API-Key': ['your-api-key-here'],
-      'Authorization': ['Bearer token', 'Basic credentials'],
-      'Referer': ['https://www.google.com/', 'https://www.baidu.com/'],
-      'Origin': ['https://example.com'],
-      'CF-Connecting-IP': ['127.0.0.1', '192.168.1.1'],
-      'True-Client-IP': ['127.0.0.1', '192.168.1.1']
+    config = {
+      name, mode: 'fixed_servers', scheme: type, host, port, color,
+      username: document.getElementById('pf-user').value.trim(),
+      password: document.getElementById('pf-pass').value.trim(),
+      bypassList: document.getElementById('pf-bypass').value.trim().split('\n').map(s => s.trim()).filter(Boolean)
     };
-
-    const lowerHeaderName = headerName.toLowerCase();
-    for (const [key, values] of Object.entries(commonValues)) {
-      if (key.toLowerCase() === lowerHeaderName) {
-        return values;
-      }
-    }
-    return [];
+  } else if (type === 'pac_url') {
+    config = { name, mode: 'pac_script', pacUrl: document.getElementById('pf-pac-url').value.trim(), color };
+  } else {
+    config = { name, mode: 'pac_script', pacData: document.getElementById('pf-pac-script').value.trim(), color };
   }
 
-  // 更新自定义请求头
-  function updateCustomHeader(headers) {
-    chrome.storage.local.get(['customHeaders'], (result) => {
-      const settings = result.customHeaders || { enabled: false };
-      chrome.storage.local.set({
-        customHeaders: {
-          enabled: settings.enabled,
-          headers: headers
-        }
-      }, () => {
-        renderCustomHeaders(headers);
-        if (settings.enabled) {
-          updateCustomHeaderRules(true);
-        }
-      });
-    });
-  }
-
-  // 更新自定义请求头规则
-  function updateCustomHeaderRules(enabled) {
-    chrome.storage.local.get(['customHeaders'], (result) => {
-      const settings = result.customHeaders;
-      if (!settings || !settings.headers || settings.headers.length === 0) return;
-
-      const rules = settings.headers
-        .filter(header => header.enabled)
-        .map((header, index) => ({
-          id: 100 + index, // 使用100以上的ID，避免与其他规则冲突
-          priority: 1,
-          action: {
-            type: 'modifyHeaders',
-            requestHeaders: [{
-              header: header.name,
-              operation: 'set',
-              value: header.value
-            }]
-          },
-          condition: {
-            urlFilter: '*',
-            resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-          }
-        }));
-
-      chrome.runtime.sendMessage({
-        action: 'updateHeaderRules',
-        rules: rules,
-        enabled: enabled
-      });
-    });
-  }
-
-  // 保存请求头IP
-  function saveXForwardedIP() {
-    const xforwardedIp = document.getElementById('xforwarded-ip');
-    const headerSelect = document.getElementById('header-select');
-    
-    const ip = xforwardedIp.value.trim();
-    if (!ip) {
-      alert('请输入IP地址');
-      return;
-    }
-
-    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (!ipPattern.test(ip)) {
-      alert('请输入有效的IP地址');
-      return;
-    }
-
-    // 获取所有选中的请求头
-    const selectedHeaders = Array.from(headerSelect.selectedOptions).map(option => option.value);
-    if (selectedHeaders.length === 0) {
-      alert('请至少选择一个请求头');
-      return;
-    }
-
-    chrome.storage.local.set({
-      headerSettings: {
-        enabled: true,
-        ip: ip,
-        headers: selectedHeaders
-      }
-    }, () => {
-      document.getElementById('xforwarded-switch').checked = true;
-      document.getElementById('xforwarded-content').classList.add('show');
-      updateHeaderRules(true);
-    });
-  }
-
-  // 更新请求头规则
-  function updateHeaderRules(enabled) {
-    chrome.storage.local.get(['headerSettings'], (result) => {
-      const settings = result.headerSettings;
-      if (!settings || !settings.ip || !settings.headers || settings.headers.length === 0) return;
-
-      const rules = settings.headers.map((header, index) => ({
-        id: index + 1,
-        priority: 1,
-        action: {
-          type: 'modifyHeaders',
-          requestHeaders: [{
-            header: header,
-            operation: 'set',
-            value: settings.ip
-          }]
-        },
-        condition: {
-          urlFilter: '*',
-          resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-        }
-      }));
-
-      chrome.runtime.sendMessage({
-        action: 'updateHeaderRules',
-        rules: rules,
-        enabled: enabled
-      });
-    });
-  }
-
-  // 更新User-Agent
-  function updateUserAgent(enabled) {
-    chrome.storage.local.get(['uaSettings'], (result) => {
-      const settings = result.uaSettings;
-      if (!settings || !settings.userAgent) return;
-
-      const rules = enabled ? [{
-        id: 51, // 使用51以避免与header规则冲突
-        priority: 1,
-        action: {
-          type: 'modifyHeaders',
-          requestHeaders: [{
-            header: 'User-Agent',
-            operation: 'set',
-            value: settings.userAgent
-          }]
-        },
-        condition: {
-          urlFilter: '*',
-          resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-        }
-      }] : [];
-
-      chrome.runtime.sendMessage({
-        action: 'updateHeaderRules',
-        rules: rules,
-        enabled: enabled
-      });
-    });
-  }
-
-  // 渲染自定义请求头列表
-  function renderCustomHeaders(headers) {
-    const container = document.getElementById('custom-headers-list');
-    container.innerHTML = '';
-
-    headers.forEach((header, index) => {
-      const item = document.createElement('div');
-      item.className = 'input-group';
-      item.style.margin = '0';
-      item.style.backgroundColor = '#fff';
-      item.style.padding = '8px';
-      item.style.borderRadius = '4px';
-      item.style.border = '1px solid #eee';
-
-      // 开关
-      const switchLabel = document.createElement('label');
-      switchLabel.className = 'switch';
-      switchLabel.style.marginRight = '8px';
-      
-      const switchInput = document.createElement('input');
-      switchInput.type = 'checkbox';
-      switchInput.checked = header.enabled;
-      switchInput.addEventListener('change', () => {
-        header.enabled = switchInput.checked;
-        updateCustomHeader(headers);
-      });
-
-      const switchSpan = document.createElement('span');
-      switchSpan.className = 'slider';
-
-      switchLabel.appendChild(switchInput);
-      switchLabel.appendChild(switchSpan);
-
-      // 请求头信息
-      const info = document.createElement('div');
-      info.style.flex = '1';
-      info.style.overflow = 'hidden';
-      info.style.textOverflow = 'ellipsis';
-      info.style.whiteSpace = 'nowrap';
-      info.textContent = `${header.name}: ${header.value}`;
-
-      // 删除按钮
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'btn';
-      deleteBtn.style.marginLeft = '8px';
-      deleteBtn.style.padding = '2px 8px';
-      deleteBtn.textContent = '删除';
-      deleteBtn.onclick = () => {
-        headers.splice(index, 1);
-        updateCustomHeader(headers);
-      };
-
-      item.appendChild(switchLabel);
-      item.appendChild(info);
-      item.appendChild(deleteBtn);
-      container.appendChild(item);
-    });
-  }
+  try {
+    await sendMsg('saveProxyConfig', { config });
+    appState.proxyConfigs[name] = config;
+    hideProxyForm();
+    renderProxyList();
+    populateProxySelects();
+    showToast(t('saved'));
+  } catch (e) { showToast('Error: ' + e.message); }
 }
 
-// 编辑代理配置
-function editProxy(proxyName, config) {
-  const container = document.querySelector('.container');
-  const lang = container.getAttribute('data-lang') || 'zh';
-  
-  // 填充表单
-  document.getElementById('proxy-name').value = proxyName;
-  document.getElementById('proxy-scheme').value = config.scheme || 'http';
-  document.getElementById('proxy-host').value = config.host || '';
-  document.getElementById('proxy-port').value = config.port || '';
-  document.getElementById('bypass-list').value = (config.bypassList || []).join('\n');
-
-  // 修改添加按钮文本为保存
-  const addProxyBtn = document.getElementById('add-proxy');
-  addProxyBtn.innerHTML = `<span data-text="zh">保存</span><span data-text="en">Save</span>`;
-  
-  // 添加取消按钮
-  let cancelBtn = document.getElementById('cancel-edit');
-  if (!cancelBtn) {
-    cancelBtn = document.createElement('button');
-    cancelBtn.id = 'cancel-edit';
-    cancelBtn.className = 'btn';
-    cancelBtn.innerHTML = `<span data-text="zh">取消</span><span data-text="en">Cancel</span>`;
-    addProxyBtn.parentElement.insertBefore(cancelBtn, addProxyBtn);
-  }
-
-  // 标记为编辑模式
-  addProxyBtn.dataset.editMode = 'true';
-  addProxyBtn.dataset.originalName = proxyName;
-
-  // 取消编辑
-  cancelBtn.onclick = () => {
-    document.getElementById('proxy-name').value = '';
-    document.getElementById('proxy-host').value = '';
-    document.getElementById('proxy-port').value = '';
-    document.getElementById('bypass-list').value = '';
-    addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
-    addProxyBtn.dataset.editMode = 'false';
-    delete addProxyBtn.dataset.originalName;
-    cancelBtn.remove();
-  };
-
-  // 修改添加代理的处理逻辑
-  addProxyBtn.onclick = () => {
-    const name = document.getElementById('proxy-name').value.trim();
-    const scheme = document.getElementById('proxy-scheme').value;
-    const host = document.getElementById('proxy-host').value.trim();
-    const port = document.getElementById('proxy-port').value.trim();
-    const bypassList = document.getElementById('bypass-list').value.trim()
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-
-    if (!name || !host || !port) {
-      alert(lang === 'zh' ? '请填写完整信息' : 'Please fill in all fields');
-      return;
-    }
-
-    const portNum = parseInt(port);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      alert(lang === 'zh' ? '端口号必须在1-65535之间' : 'Port must be between 1-65535');
-      return;
-    }
-
-    // 如果修改了名称，检查新名称是否可用
-    if (name !== proxyName && (name === 'direct' || name === 'system')) {
-      alert(lang === 'zh' ? 
-        '不能使用保留的代理名称（direct 或 system）' : 
-        'Cannot use reserved proxy names (direct or system)');
-      return;
-    }
-
-    const newConfig = {
-      mode: 'fixed_servers',
-      scheme,
-      host,
-      port: portNum,
-      bypassList
-    };
-
-    // 如果是编辑模式且修改了名称，需要先删除原配置
-    if (name !== proxyName) {
-      chrome.runtime.sendMessage(
-        { action: 'removeProxyConfig', proxyName: proxyName },
-        (response) => {
-          if (response.success) {
-            addNewConfig(name, newConfig);
-          }
-        }
-      );
-    } else {
-      addNewConfig(name, newConfig);
-    }
-  };
+async function deleteProxy(name) {
+  if (!confirm(t('confirm_delete') + ' ' + name)) return;
+  try {
+    await sendMsg('removeProxyConfig', { name });
+    delete appState.proxyConfigs[name];
+    if (appState.currentProxy === name) appState.currentProxy = 'direct';
+    renderProxyList();
+    populateProxySelects();
+    showToast(t('deleted'));
+  } catch (e) { showToast('Error: ' + e.message); }
 }
 
-function addNewConfig(name, config) {
-  const container = document.querySelector('.container');
-  const lang = container.getAttribute('data-lang') || 'zh';
-  
-  // 添加name属性到config对象中
-  const configWithName = {
-    ...config,
-    name: name
-  };
-  
-  chrome.runtime.sendMessage(
-    { action: 'addProxyConfig', config: configWithName },
-    (response) => {
-      if (response.success) {
-        // 清空表单
-        document.getElementById('proxy-name').value = '';
-        document.getElementById('proxy-host').value = '';
-        document.getElementById('proxy-port').value = '';
-        document.getElementById('bypass-list').value = '';
-        
-        // 恢复添加按钮
-        const addProxyBtn = document.getElementById('add-proxy');
-        addProxyBtn.innerHTML = `<span data-text="zh">添加</span><span data-text="en">Add</span>`;
-        addProxyBtn.dataset.editMode = 'false';
-        delete addProxyBtn.dataset.originalName;
-        
-        const cancelBtn = document.getElementById('cancel-edit');
-        if (cancelBtn) {
-          cancelBtn.remove();
-        }
-        
-        // 重新加载代理列表
-        loadProxyList();
+// ====== Headers Panel ======
+function initHeadersPanel() {
+  ['xff','ua','custom'].forEach(id => {
+    const head = document.getElementById(id + '-head');
+    const body = document.getElementById(id + '-body');
+    head.addEventListener('click', () => {
+      body.classList.toggle('open');
+      const arrow = head.querySelector('.section-arrow');
+      if (arrow) arrow.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+    });
+  });
+
+  document.getElementById('xff-random').addEventListener('click', () => {
+    document.getElementById('xff-ip').value = randomIp();
+  });
+  document.getElementById('xff-save').addEventListener('click', saveXffSettings);
+  document.getElementById('xff-enabled').addEventListener('change', saveXffSettings);
+
+  document.querySelectorAll('[data-ua]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.ua;
+      if (key === 'random') {
+        document.getElementById('ua-value').value = UA_POOL[Math.floor(Math.random() * UA_POOL.length)];
       } else {
-        const errorMessage = lang === 'zh' ?
-          '保存代理失败：' + (response.error || '未知错误') :
-          'Failed to save proxy: ' + (response.error || 'Unknown error');
-        alert(errorMessage);
+        document.getElementById('ua-value').value = UA_PRESETS[key] || '';
       }
-    }
-  );
+    });
+  });
+  document.getElementById('ua-save').addEventListener('click', saveUaSettings);
+  document.getElementById('ua-enabled').addEventListener('change', saveUaSettings);
+
+  document.getElementById('new-hdr-scope').addEventListener('change', updateHdrSuggestions);
+  document.getElementById('new-hdr-op').addEventListener('change', () => {
+    document.getElementById('new-hdr-value').disabled = document.getElementById('new-hdr-op').value === 'remove';
+  });
+  document.getElementById('add-hdr-btn').addEventListener('click', addHeaderRule);
+  updateHdrSuggestions();
 }
+
+function updateHdrSuggestions() {
+  const scope = document.getElementById('new-hdr-scope').value;
+  document.getElementById('hdr-suggestions').innerHTML =
+    (HDR_SUGGESTIONS[scope] || []).map(h => `<option value="${h}">`).join('');
+}
+
+function loadXffSettings() {
+  const xff = appState.xffSettings || {};
+  document.getElementById('xff-enabled').checked = !!xff.enabled;
+  document.getElementById('xff-ip').value = xff.ip || '';
+  document.getElementById('xff-url').value = xff.urlPattern || '';
+  const selected = new Set(xff.headers || ['x-forwarded-for']);
+  document.querySelectorAll('.xff-hdr-chip').forEach(cb => { cb.checked = selected.has(cb.value); });
+}
+
+async function saveXffSettings() {
+  const ipVal = document.getElementById('xff-ip').value.trim();
+  if (ipVal && !isValidIp(ipVal)) { showToast(t('err_ip_invalid')); return; }
+
+  const settings = {
+    enabled: document.getElementById('xff-enabled').checked,
+    ip: ipVal || randomIp(),
+    headers: [...document.querySelectorAll('.xff-hdr-chip:checked')].map(cb => cb.value) || ['x-forwarded-for'],
+    urlPattern: document.getElementById('xff-url').value.trim()
+  };
+  if (!settings.headers.length) settings.headers = ['x-forwarded-for'];
+
+  try {
+    await sendMsg('saveXffSettings', { settings });
+    appState.xffSettings = settings;
+    showToast(t('xff_saved'));
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+function loadUaSettings() {
+  const ua = appState.uaSettings || {};
+  document.getElementById('ua-enabled').checked = !!ua.enabled;
+  document.getElementById('ua-value').value = ua.value || '';
+  document.getElementById('ua-url').value = ua.urlPattern || '';
+}
+
+async function saveUaSettings() {
+  const settings = {
+    enabled: document.getElementById('ua-enabled').checked,
+    value: document.getElementById('ua-value').value.trim(),
+    urlPattern: document.getElementById('ua-url').value.trim()
+  };
+  try {
+    await sendMsg('saveUaSettings', { settings });
+    appState.uaSettings = settings;
+    showToast(t('ua_saved'));
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+function renderHeaderRules() {
+  const list = document.getElementById('header-rules-list');
+  const rules = appState.headerRules || [];
+
+  if (!rules.length) {
+    list.innerHTML = `<div class="empty-state text-xs">${t('no_headers')}</div>`;
+    return;
+  }
+
+  list.innerHTML = rules.map(rule => {
+    const reqH = (rule.requestHeaders || []).map((h, i) => ({ ...h, scope: 'req', scopeKey: 'requestHeaders', idx: i }));
+    const resH = (rule.responseHeaders || []).map((h, i) => ({ ...h, scope: 'res', scopeKey: 'responseHeaders', idx: i }));
+    return [...reqH, ...resH].map(h => `
+      <div class="header-rule-item">
+        <span class="hdr-badge ${h.scope}">${h.scope === 'req' ? t('req_header') : t('res_header')}</span>
+        <span class="hdr-name monospace">${escapeHtml(h.header)}</span>
+        <span class="hdr-value monospace">${h.operation === 'remove' ? '[ remove ]' : escapeHtml(h.value)}</span>
+        ${rule.urlPattern ? `<span class="hdr-url" title="${escapeHtml(rule.urlPattern)}">${escapeHtml(rule.urlPattern)}</span>` : ''}
+        <label class="toggle" style="margin-left:auto" onclick="event.stopPropagation()">
+          <input type="checkbox" class="hdr-rule-toggle" data-id="${rule.id}" ${rule.enabled ? 'checked' : ''}>
+          <span class="toggle-track"></span>
+        </label>
+        <button class="btn btn-icon danger" data-del-rule="${rule.id}" data-del-scope="${h.scopeKey}" data-del-idx="${h.idx}">&#10005;</button>
+      </div>
+    `).join('');
+  }).join('');
+
+  list.querySelectorAll('.hdr-rule-toggle').forEach(cb => {
+    cb.addEventListener('change', () => toggleHeaderRule(cb.dataset.id, cb.checked));
+  });
+  list.querySelectorAll('[data-del-rule]').forEach(btn => {
+    btn.addEventListener('click', () => deleteHeaderRule(btn.dataset.delRule, btn.dataset.delScope, parseInt(btn.dataset.delIdx)));
+  });
+}
+
+async function addHeaderRule() {
+  const scope = document.getElementById('new-hdr-scope').value;
+  const hdrName = document.getElementById('new-hdr-name').value.trim();
+  const op = document.getElementById('new-hdr-op').value;
+  const value = op === 'remove' ? '' : document.getElementById('new-hdr-value').value.trim();
+  const urlPattern = document.getElementById('new-hdr-url').value.trim();
+
+  if (!hdrName) { showToast(t('header_name')); return; }
+
+  const headerObj = { header: hdrName, operation: op, value };
+  const rules = appState.headerRules || [];
+
+  const existing = rules.find(r => r.urlPattern === urlPattern);
+  let updatedRules;
+
+  if (existing) {
+    updatedRules = rules.map(r => {
+      if (r.id !== existing.id) return r;
+      const updated = { ...r };
+      if (scope === 'request') updated.requestHeaders = [...(r.requestHeaders || []), headerObj];
+      else updated.responseHeaders = [...(r.responseHeaders || []), headerObj];
+      return updated;
+    });
+  } else {
+    const newRule = {
+      id: generateId(), enabled: true, urlPattern,
+      requestHeaders: scope === 'request' ? [headerObj] : [],
+      responseHeaders: scope === 'response' ? [headerObj] : []
+    };
+    updatedRules = [...rules, newRule];
+  }
+
+  try {
+    await sendMsg('saveHeaderRules', { rules: updatedRules });
+    appState.headerRules = updatedRules;
+    renderHeaderRules();
+    document.getElementById('new-hdr-name').value = '';
+    document.getElementById('new-hdr-value').value = '';
+    document.getElementById('new-hdr-url').value = '';
+    showToast(t('saved'));
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function toggleHeaderRule(id, enabled) {
+  const rules = (appState.headerRules || []).map(r => r.id === id ? { ...r, enabled } : r);
+  try {
+    await sendMsg('saveHeaderRules', { rules });
+    appState.headerRules = rules;
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function deleteHeaderRule(id, scopeKey, idx) {
+  const rules = (appState.headerRules || []).map(r => {
+    if (r.id !== id) return r;
+    const updated = { ...r, [scopeKey]: [...(r[scopeKey] || [])] };
+    updated[scopeKey].splice(idx, 1);
+    return updated;
+  }).filter(r => (r.requestHeaders || []).length + (r.responseHeaders || []).length > 0);
+  try {
+    await sendMsg('saveHeaderRules', { rules });
+    appState.headerRules = rules;
+    renderHeaderRules();
+    showToast(t('deleted'));
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+// ====== Rules Panel ======
+function populateProxySelects() {
+  const configs = appState?.proxyConfigs || {};
+  ['default-proxy-sel','rf-proxy'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = Object.keys(configs)
+      .map(n => `<option value="${n}">${proxyDisplayName(n, configs)}</option>`).join('');
+    if (prev && configs[prev]) sel.value = prev;
+  });
+  const defSel = document.getElementById('default-proxy-sel');
+  if (defSel && appState?.autoSwitch?.defaultProxy) defSel.value = appState.autoSwitch.defaultProxy;
+}
+
+function initRulesPanel() {
+  document.getElementById('auto-switch-toggle').addEventListener('change', async e => {
+    const autoSwitch = { ...appState.autoSwitch, enabled: e.target.checked };
+    try {
+      await sendMsg('setAutoSwitch', { autoSwitch });
+      appState.autoSwitch = autoSwitch;
+      updateStatusBar();
+      showToast(e.target.checked ? t('auto_on') : t('auto_off'));
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+
+  document.getElementById('default-proxy-sel').addEventListener('change', async e => {
+    const autoSwitch = { ...appState.autoSwitch, defaultProxy: e.target.value };
+    try {
+      await sendMsg('setAutoSwitch', { autoSwitch });
+      appState.autoSwitch = autoSwitch;
+    } catch (err) { showToast('Error: ' + err.message); }
+  });
+
+  document.getElementById('test-url-btn').addEventListener('click', testUrl);
+  document.getElementById('test-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') testUrl(); });
+
+  document.getElementById('add-rule-btn').addEventListener('click', () => {
+    rfEditId = null;
+    document.getElementById('rf-pattern').value = '';
+    document.getElementById('rf-type').value = 'wildcard';
+    document.getElementById('rule-add-form').style.display = 'block';
+  });
+  document.getElementById('rf-cancel').addEventListener('click', () => {
+    document.getElementById('rule-add-form').style.display = 'none';
+  });
+  document.getElementById('rf-save').addEventListener('click', saveAutoSwitchRule);
+}
+
+function renderRuleList() {
+  const list = document.getElementById('rule-list');
+  const rules = appState.autoSwitch?.rules || [];
+  document.getElementById('auto-switch-toggle').checked = !!appState.autoSwitch?.enabled;
+
+  if (!rules.length) {
+    list.innerHTML = `<div class="empty-state text-xs">${t('no_rules')}</div>`;
+    return;
+  }
+
+  list.innerHTML = rules.map(r => `
+    <div class="rule-item ${r.enabled ? '' : 'disabled'}">
+      <span class="rule-pattern">${escapeHtml(r.pattern || '—')}</span>
+      <span class="rule-arrow">&#8594;</span>
+      <span class="rule-proxy-name">${escapeHtml(proxyDisplayName(r.proxy, appState.proxyConfigs))}</span>
+      <label class="toggle" style="margin-left:auto" onclick="event.stopPropagation()">
+        <input type="checkbox" class="rule-toggle" data-id="${r.id}" ${r.enabled ? 'checked' : ''}>
+        <span class="toggle-track"></span>
+      </label>
+      <button class="btn btn-icon danger" data-del-rule="${r.id}">&#10005;</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.rule-toggle').forEach(cb => {
+    cb.addEventListener('change', () => toggleAutoSwitchRule(cb.dataset.id, cb.checked));
+  });
+  list.querySelectorAll('[data-del-rule]').forEach(btn => {
+    btn.addEventListener('click', () => deleteAutoSwitchRule(btn.dataset.delRule));
+  });
+}
+
+async function saveAutoSwitchRule() {
+  const pattern = document.getElementById('rf-pattern').value.trim();
+  const patternType = document.getElementById('rf-type').value;
+  const proxy = document.getElementById('rf-proxy').value;
+  if (!pattern) { showToast(t('rule_pattern')); return; }
+
+  const rules = appState.autoSwitch?.rules || [];
+  const updatedRules = rfEditId
+    ? rules.map(r => r.id === rfEditId ? { ...r, pattern, patternType, proxy } : r)
+    : [...rules, { id: generateId(), enabled: true, pattern, patternType, proxy }];
+
+  const autoSwitch = { ...appState.autoSwitch, rules: updatedRules };
+  try {
+    await sendMsg('setAutoSwitch', { autoSwitch });
+    appState.autoSwitch = autoSwitch;
+    renderRuleList();
+    document.getElementById('rule-add-form').style.display = 'none';
+    if (autoSwitch.enabled) updateStatusBar();
+    showToast(t('saved'));
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function toggleAutoSwitchRule(id, enabled) {
+  const rules = (appState.autoSwitch?.rules || []).map(r => r.id === id ? { ...r, enabled } : r);
+  const autoSwitch = { ...appState.autoSwitch, rules };
+  try {
+    await sendMsg('setAutoSwitch', { autoSwitch });
+    appState.autoSwitch = autoSwitch;
+    renderRuleList();
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function deleteAutoSwitchRule(id) {
+  const rules = (appState.autoSwitch?.rules || []).filter(r => r.id !== id);
+  const autoSwitch = { ...appState.autoSwitch, rules };
+  try {
+    await sendMsg('setAutoSwitch', { autoSwitch });
+    appState.autoSwitch = autoSwitch;
+    renderRuleList();
+    showToast(t('deleted'));
+  } catch (e) { showToast('Error: ' + e.message); }
+}
+
+async function testUrl() {
+  const url = document.getElementById('test-url-input').value.trim();
+  const resultEl = document.getElementById('test-url-result');
+  if (!url) return;
+  try {
+    const res = await sendMsg('testUrl', { url });
+    resultEl.textContent = `${res.reason} → ${proxyDisplayName(res.proxy, appState.proxyConfigs)}`;
+    resultEl.className = 'test-url-result show';
+  } catch (e) {
+    resultEl.textContent = 'Error: ' + e.message;
+    resultEl.className = 'test-url-result show';
+  }
+}
+
+// ====== Settings Panel ======
+function initSettingsPanel() {
+  document.querySelectorAll('[data-theme-opt]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      applyTheme(btn.dataset.themeOpt);
+      const settings = { ...appState.appSettings, theme: btn.dataset.themeOpt };
+      await sendMsg('saveAppSettings', { settings }).catch(() => {});
+      appState.appSettings = settings;
+    });
+  });
+
+  document.querySelectorAll('[data-lang]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      applyLanguage(btn.dataset.lang);
+      const settings = { ...appState.appSettings, language: btn.dataset.lang };
+      await sendMsg('saveAppSettings', { settings }).catch(() => {});
+      appState.appSettings = settings;
+    });
+  });
+
+  document.getElementById('lang-btn').addEventListener('click', async () => {
+    const nl = lang === 'zh' ? 'en' : 'zh';
+    applyLanguage(nl);
+    const settings = { ...appState.appSettings, language: nl };
+    await sendMsg('saveAppSettings', { settings }).catch(() => {});
+    appState.appSettings = settings;
+  });
+
+  document.getElementById('theme-btn').addEventListener('click', async () => {
+    const order = ['auto','light','dark'];
+    const next = order[(order.indexOf(currentTheme) + 1) % order.length];
+    applyTheme(next);
+    const settings = { ...appState.appSettings, theme: next };
+    await sendMsg('saveAppSettings', { settings }).catch(() => {});
+    appState.appSettings = settings;
+  });
+
+  document.getElementById('export-btn').addEventListener('click', exportConfig);
+
+  document.getElementById('import-btn').addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+
+  document.getElementById('import-file').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const config = JSON.parse(await file.text());
+      await sendMsg('importConfig', { config });
+      appState = await sendMsg('getState');
+      renderAll();
+      showToast(t('imported'));
+    } catch (err) { showToast('Import error: ' + err.message); }
+    e.target.value = '';
+  });
+
+  document.getElementById('reset-btn').addEventListener('click', async () => {
+    if (!confirm(t('confirm_reset'))) return;
+    try {
+      await sendMsg('resetConfig');
+      appState = await sendMsg('getState');
+      renderAll();
+      showToast(t('reset_done'));
+    } catch (e) { showToast('Error: ' + e.message); }
+  });
+}
+
+function exportConfig() {
+  const data = {
+    version: '0.3.0', exportedAt: new Date().toISOString(),
+    proxyConfigs: appState.proxyConfigs, currentProxy: appState.currentProxy,
+    autoSwitch: appState.autoSwitch, xffSettings: appState.xffSettings,
+    uaSettings: appState.uaSettings, headerRules: appState.headerRules,
+    appSettings: appState.appSettings
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `nextswitchy-${Date.now()}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast(t('export_config'));
+}
+
+// ====== Render All ======
+function renderAll() {
+  const s = appState.appSettings || {};
+  applyTheme(s.theme || 'auto');
+  applyLanguage(s.language || 'zh');
+  updateStatusBar();
+  renderProxyList();
+  loadXffSettings();
+  loadUaSettings();
+  renderHeaderRules();
+  populateProxySelects();
+  renderRuleList();
+}
+
+// ====== Init ======
+document.addEventListener('DOMContentLoaded', async () => {
+  initTabs();
+  initProxyPanel();
+  initHeadersPanel();
+  initRulesPanel();
+  initSettingsPanel();
+
+  try {
+    appState = await sendMsg('getState');
+  } catch (e) {
+    appState = {
+      proxyConfigs: { direct: { name:'direct', mode:'direct' }, system: { name:'system', mode:'system' } },
+      currentProxy: 'direct',
+      autoSwitch: { enabled: false, defaultProxy: 'direct', rules: [] },
+      xffSettings: { enabled: false, ip: '', headers: ['x-forwarded-for'], urlPattern: '' },
+      uaSettings: { enabled: false, value: '', urlPattern: '' },
+      headerRules: [], appSettings: { theme: 'auto', language: 'zh' }
+    };
+  }
+
+  renderAll();
+});

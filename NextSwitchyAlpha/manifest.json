@@ -1,19 +1,23 @@
 {
   "manifest_version": 3,
   "name": "NextSwitchyAlpha",
-  "version": "0.2.0",
-  "description": "All-in-one proxy switcher and header modifier (Alternative to Proxy SwitchyOmega, ModHeader, and X-Forwarded-For Header)",
+  "version": "0.3.0",
+  "description": "The ultimate proxy switcher, header modifier, and auto-switch rules engine. Surpasses SwitchyOmega + ModHeader + XFF Header.",
   "author": "可以遐想 (keyixiaxiang)",
   "homepage_url": "https://github.com/kyxiaxiang",
   "default_locale": "en",
   "permissions": [
     "proxy",
     "storage",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "tabs",
+    "activeTab",
+    "webNavigation",
+    "webRequest",
+    "webRequestAuthProvider"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

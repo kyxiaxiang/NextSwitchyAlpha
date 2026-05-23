@@ -3,623 +3,335 @@
 <head>
   <meta charset="UTF-8">
   <title>NextSwitchyAlpha</title>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <style>
-    body {
-      width: 320px;
-      padding: 15px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .section {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px;
-    }
-
-    .section-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-      margin: 0 0 10px 0;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #eee;
-    }
-
-    .proxy-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .proxy-item {
-      display: flex;
-      align-items: center;
-      padding: 8px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .proxy-item:hover {
-      background-color: #f5f5f5;
-    }
-
-    .proxy-item.active {
-      border-color: #4285f4;
-      background-color: #e6f2ff;
-    }
-
-    .proxy-name {
-      flex: 1;
-      font-size: 13px;
-    }
-
-    .proxy-detail {
-      font-size: 12px;
-      color: #666;
-    }
-
-    .tool-section {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .tool-item {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .tool-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .tool-content {
-      display: none;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
-
-    .tool-content.show {
-      display: block;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    .custom-header-input {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: 100%;
-    }
-
-    .custom-header-add {
-      width: 100%;
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 8px;
-    }
-
-    .custom-header-input input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    .proxy-add-form {
-      margin-top: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding-bottom: 4px;
-    }
-
-    .proxy-add-form .input-group:last-child {
-      justify-content: flex-end;
-    }
-
-    .quick-ips {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .quick-ips .btn {
-      font-family: monospace;
-      font-size: 11px;
-      padding: 4px 8px;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 6px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 12px;
-      box-sizing: border-box;
-    }
-
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #4285f4;
-      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-    }
-
-    /* 自定义请求头输入提示样式 */
-    #custom-header-value[data-suggestions] {
-      border-color: #ff9800;
-      background: linear-gradient(to right, #fff 95%, #fff3cd 100%);
-    }
-
-    #custom-header-value[data-suggestions]:focus {
-      border-color: #ff9800;
-      box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
-    }
-
-    #custom-header-value[data-suggestions]::placeholder {
-      color: #ff9800;
-      font-style: italic;
-    }
-
-    /* datalist样式增强 */
-    #custom-header-name:focus {
-      border-color: #4285f4;
-      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-    }
-
-    .btn {
-      padding: 6px 12px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background-color: #fff;
-      cursor: pointer;
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .btn:hover {
-      background-color: #f5f5f5;
-    }
-
-    .btn.primary {
-      background-color: #4285f4;
-      border-color: #4285f4;
-      color: white;
-    }
-
-    .btn.primary:hover {
-      background-color: #3367d6;
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 4px;
-    }
-
-    .btn.edit {
-      background-color: #4caf50;
-      border-color: #4caf50;
-      color: white;
-    }
-
-    .btn.edit:hover {
-      background-color: #388e3c;
-    }
-
-    .btn.delete {
-      background-color: #f44336;
-      border-color: #f44336;
-      color: white;
-    }
-
-    .btn.delete:hover {
-      background-color: #d32f2f;
-    }
-
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 40px;
-      height: 20px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 20px;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 16px;
-      width: 16px;
-      left: 2px;
-      bottom: 2px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider {
-      background-color: #4285f4;
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(20px);
-    }
-
-    .footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-      padding-top: 10px;
-      border-top: 1px solid #eee;
-    }
-
-    .version {
-      font-size: 12px;
-      color: #666;
-    }
-
-    .author {
-      font-size: 12px;
-      color: #666;
-    }
-
-    .language-switch {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      font-size: 12px;
-      color: #666;
-      cursor: pointer;
-      padding: 4px 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      background: #fff;
-    }
-
-    .language-switch:hover {
-      background: #f5f5f5;
-    }
-
-    [data-lang="en"] [data-text="zh"],
-    [data-lang="zh"] [data-text="en"] {
-      display: none;
-    }
-
-    .system-proxy-status {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-left: 6px;
-      position: relative;
-      background-color: #ccc;
-      transition: all 0.3s ease;
-    }
-
-    .system-proxy-status.active {
-      background-color: #4caf50;
-      box-shadow: 0 0 4px #4caf50;
-    }
-
-    .system-proxy-status.error {
-      background-color: #f44336;
-      box-shadow: 0 0 4px #f44336;
-    }
-    
-    .system-proxy-status.error::before {
-      content: '!';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 6px;
-      font-weight: bold;
-    }
-
-    .material-icons {
-      font-size: 18px;
-      line-height: 1;
-      vertical-align: middle;
-    }
-
-    .btn.icon {
-      padding: 4px;
-      min-width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .btn.icon:hover {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
-
-    .btn.icon.edit {
-      color: #4caf50;
-      border-color: transparent;
-      background: transparent;
-    }
-
-    .btn.icon.delete {
-      color: #f44336;
-      border-color: transparent;
-      background: transparent;
-    }
-
-    .btn.icon.edit:hover {
-      background-color: rgba(76, 175, 80, 0.1);
-    }
-
-    .btn.icon.delete:hover {
-      background-color: rgba(244, 67, 54, 0.1);
-    }
-
-    .cookie-item,
-    .cookie-info,
-    .cookie-actions,
-    .cookie-input {
-      display: none;
-    }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <button class="language-switch" id="langSwitch">EN</button>
-  <div class="container" data-lang="zh">
-    <!-- 代理切换部分 -->
-    <div class="section">
-      <h2 class="section-title">
-        <span data-text="zh">代理切换</span>
-        <span data-text="en">Proxy Switch</span>
-      </h2>
-      <div class="proxy-list" id="proxy-list">
-        <!-- 代理列表将通过JS动态添加 -->
+<div id="app">
+
+  <!-- ====== Header ====== -->
+  <header class="header">
+    <div class="header-brand">
+      <img src="images/icon.svg" class="brand-icon" alt="">
+      <span class="brand-name">NextSwitchy</span>
+    </div>
+    <div class="header-status">
+      <div class="status-pill" id="status-pill">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-label">Loading...</span>
       </div>
-      <div class="proxy-add-form">
-        <div class="input-group">
-          <input type="text" id="proxy-name" placeholder="代理名称" data-placeholder-zh="代理名称" data-placeholder-en="Proxy Name" style="width: 100px;">
-          <select id="proxy-scheme" style="width: 80px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-            <option value="http">http</option>
-            <option value="https">https</option>
-            <option value="socks4">socks4</option>
-            <option value="socks5">socks5</option>
+    </div>
+    <div class="header-end">
+      <button class="icon-btn" id="theme-btn" title="Toggle theme">A</button>
+      <button class="icon-btn" id="lang-btn" title="Language" style="font-size:11px;font-weight:700">EN</button>
+    </div>
+  </header>
+
+  <!-- ====== Tabs ====== -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="proxy">
+      <span class="tab-label" data-i18n="tab_proxy">代理</span>
+    </button>
+    <button class="tab" data-tab="headers">
+      <span class="tab-label" data-i18n="tab_headers">请求头</span>
+    </button>
+    <button class="tab" data-tab="rules">
+      <span class="tab-label" data-i18n="tab_rules">规则</span>
+    </button>
+    <button class="tab" data-tab="settings">
+      <span class="tab-label" data-i18n="tab_settings">设置</span>
+    </button>
+  </nav>
+
+  <!-- ====== Content ====== -->
+  <main class="content">
+
+    <!-- ====== Proxy Panel ====== -->
+    <div class="panel active" id="panel-proxy">
+      <div class="proxy-list" id="proxy-list">
+        <div class="empty-state">Loading...</div>
+      </div>
+
+      <div class="sep mt-2 mb-2"></div>
+
+      <!-- Add/Edit form -->
+      <div id="proxy-form-wrap" style="display:none">
+        <div class="card" style="padding:12px">
+          <div class="form-label mb-1" id="proxy-form-title">添加代理</div>
+          <div class="form-row">
+            <input type="text" id="pf-name" data-i18n-ph="proxy_name" placeholder="代理名称" style="flex:1">
+            <select id="pf-type" style="width:100px">
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks4">SOCKS4</option>
+              <option value="socks5">SOCKS5</option>
+              <option value="pac_url">PAC URL</option>
+              <option value="pac_script">PAC Script</option>
+            </select>
+          </div>
+
+          <div class="pf-server-fields">
+            <div class="form-row">
+              <input type="text" id="pf-host" data-i18n-ph="proxy_host" placeholder="主机地址" style="flex:1">
+              <input type="text" id="pf-port" data-i18n-ph="proxy_port" placeholder="端口" style="width:72px">
+            </div>
+            <div class="form-row">
+              <input type="text" id="pf-user" data-i18n-ph="proxy_user" placeholder="用户名（可选）" style="flex:1">
+              <input type="password" id="pf-pass" data-i18n-ph="proxy_pass" placeholder="密码（可选）" style="flex:1">
+            </div>
+            <div class="form-row">
+              <textarea id="pf-bypass" data-i18n-ph="proxy_bypass" placeholder="不代理的地址，每行一个&#10;例: *.local, 127.0.0.1" style="width:100%;height:56px"></textarea>
+            </div>
+          </div>
+
+          <div class="pf-pac-url-field">
+            <div class="form-row">
+              <input type="url" id="pf-pac-url" data-i18n-ph="pac_url" placeholder="PAC URL" style="flex:1">
+            </div>
+          </div>
+
+          <div class="pf-pac-script-field">
+            <div class="form-row">
+              <textarea id="pf-pac-script" placeholder="function FindProxyForURL(url, host) { ... }" style="width:100%;height:80px;font-family:monospace;font-size:11px"></textarea>
+            </div>
+          </div>
+
+          <!-- Color picker -->
+          <div class="form-label mb-1" data-i18n="proxy_color">标签颜色</div>
+          <div class="color-row mb-2">
+            <div class="color-opt selected" data-color="#6366f1" style="background:#6366f1"></div>
+            <div class="color-opt" data-color="#10b981" style="background:#10b981"></div>
+            <div class="color-opt" data-color="#f59e0b" style="background:#f59e0b"></div>
+            <div class="color-opt" data-color="#ef4444" style="background:#ef4444"></div>
+            <div class="color-opt" data-color="#3b82f6" style="background:#3b82f6"></div>
+            <div class="color-opt" data-color="#8b5cf6" style="background:#8b5cf6"></div>
+            <div class="color-opt" data-color="#ec4899" style="background:#ec4899"></div>
+            <div class="color-opt" data-color="#14b8a6" style="background:#14b8a6"></div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-ghost btn-sm" id="pf-cancel" data-i18n="cancel">取消</button>
+            <button class="btn btn-primary btn-sm" id="pf-save" data-i18n="save">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost btn-sm btn-full mt-1" id="btn-add-proxy" data-i18n="add_proxy">+ 添加代理</button>
+    </div>
+
+    <!-- ====== Headers Panel ====== -->
+    <div class="panel" id="panel-headers">
+
+      <!-- XFF Section -->
+      <div class="card mb-2" id="xff-card">
+        <div class="section-head" id="xff-head">
+          <div class="section-head-left">
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="xff-enabled">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="section-title">IP 伪装 (XFF)</span>
+          </div>
+          <span class="section-arrow">▾</span>
+        </div>
+        <div class="section-body" id="xff-body">
+          <div class="form-label mb-1" data-i18n="xff_headers">选择要注入的头</div>
+          <div class="chip-grid" id="xff-chip-grid">
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-forwarded-for" checked><span class="chip-label">X-Forwarded-For</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-real-ip"><span class="chip-label">X-Real-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-originating-ip"><span class="chip-label">X-Originating-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-remote-ip"><span class="chip-label">X-Remote-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-remote-addr"><span class="chip-label">X-Remote-Addr</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-forwarded"><span class="chip-label">X-Forwarded</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="x-cluster-client-ip"><span class="chip-label">X-Cluster-Client-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="true-client-ip"><span class="chip-label">True-Client-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="client-ip"><span class="chip-label">Client-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="forwarded-for"><span class="chip-label">Forwarded-For</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="forwarded"><span class="chip-label">Forwarded</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="cf-connecting-ip"><span class="chip-label">CF-Connecting-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="ali-cdn-real-ip"><span class="chip-label">Ali-CDN-Real-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="cdn-src-ip"><span class="chip-label">CDN-SRC-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="cdn-real-ip"><span class="chip-label">CDN-Real-IP</span></label>
+            <label class="chip"><input class="chip-input xff-hdr-chip" type="checkbox" value="wl-proxy-client-ip"><span class="chip-label">WL-Proxy-Client-IP</span></label>
+          </div>
+
+          <div class="form-label mb-1 mt-2" data-i18n="xff_ip">IP 地址</div>
+          <div class="form-row mb-2">
+            <input type="text" id="xff-ip" data-i18n-ph="xff_ip_ph" placeholder="例: 1.2.3.4（留空=自动随机）" style="flex:1;font-family:monospace">
+            <button class="btn btn-ghost btn-sm" id="xff-random" data-i18n="random_btn">随机</button>
+          </div>
+
+          <div class="form-label mb-1" data-i18n="url_filter">URL 过滤（留空 = 全部）</div>
+          <div class="form-row mb-2">
+            <input type="text" id="xff-url" data-i18n-ph="url_filter_ph" placeholder="例: *.example.com" style="flex:1;font-family:monospace">
+          </div>
+
+          <button class="btn btn-primary btn-sm" id="xff-save" data-i18n="save">保存</button>
+        </div>
+      </div>
+
+      <!-- User-Agent Section -->
+      <div class="card mb-2" id="ua-card">
+        <div class="section-head" id="ua-head">
+          <div class="section-head-left">
+            <label class="toggle" onclick="event.stopPropagation()">
+              <input type="checkbox" id="ua-enabled">
+              <span class="toggle-track"></span>
+            </label>
+            <span class="section-title">User-Agent</span>
+          </div>
+          <span class="section-arrow">▾</span>
+        </div>
+        <div class="section-body" id="ua-body">
+          <div class="form-label mb-1" data-i18n="ua_value">User-Agent 字符串</div>
+          <div class="form-row mb-1">
+            <input type="text" id="ua-value" data-i18n-ph="ua_ph" placeholder="输入 User-Agent 或选择预设" style="flex:1">
+          </div>
+          <div class="ua-presets mb-2">
+            <button class="btn btn-ghost btn-sm" data-ua="mobile" data-i18n="ua_mobile">移动端</button>
+            <button class="btn btn-ghost btn-sm" data-ua="desktop" data-i18n="ua_desktop">桌面端</button>
+            <button class="btn btn-ghost btn-sm" data-ua="crawler" data-i18n="ua_crawler">爬虫</button>
+            <button class="btn btn-ghost btn-sm" data-ua="random" data-i18n="ua_random">随机</button>
+          </div>
+
+          <div class="form-label mb-1" data-i18n="url_filter">URL 过滤（留空 = 全部）</div>
+          <div class="form-row mb-2">
+            <input type="text" id="ua-url" data-i18n-ph="url_filter_ph" placeholder="例: *.example.com" style="flex:1;font-family:monospace">
+          </div>
+
+          <button class="btn btn-primary btn-sm" id="ua-save" data-i18n="save">保存</button>
+        </div>
+      </div>
+
+      <!-- Custom Headers Section -->
+      <div class="card" id="custom-card">
+        <div class="section-head" id="custom-head">
+          <div class="section-head-left">
+            <span class="section-title" data-i18n="custom_headers">自定义请求头 / 响应头</span>
+          </div>
+          <span class="section-arrow">▾</span>
+        </div>
+        <div class="section-body" id="custom-body">
+          <div id="header-rules-list"></div>
+
+          <!-- Add form -->
+          <div class="add-hdr-form mt-1">
+            <div class="form-label mb-1" data-i18n="add_header_rule">添加规则</div>
+            <div class="add-hdr-row">
+              <select id="new-hdr-scope" style="width:86px;font-size:12px">
+                <option value="request" data-i18n="req_header">请求头</option>
+                <option value="response" data-i18n="res_header">响应头</option>
+              </select>
+              <input type="text" id="new-hdr-name" data-i18n-ph="header_name" placeholder="Header 名称" style="flex:1;font-size:12px" list="hdr-suggestions">
+              <datalist id="hdr-suggestions"></datalist>
+            </div>
+            <div class="add-hdr-row">
+              <select id="new-hdr-op" style="width:86px;font-size:12px">
+                <option value="set" data-i18n="op_set">设置</option>
+                <option value="append" data-i18n="op_append">追加</option>
+                <option value="remove" data-i18n="op_remove">删除</option>
+              </select>
+              <input type="text" id="new-hdr-value" data-i18n-ph="header_value" placeholder="值（删除时留空）" style="flex:1;font-size:12px">
+            </div>
+            <div class="add-hdr-row">
+              <input type="text" id="new-hdr-url" data-i18n-ph="url_filter_ph" placeholder="URL 过滤（可选）" style="flex:1;font-size:12px;font-family:monospace">
+              <button class="btn btn-primary btn-sm" id="add-hdr-btn" data-i18n="add">添加</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== Rules Panel ====== -->
+    <div class="panel" id="panel-rules">
+      <div class="rule-toolbar">
+        <div class="rule-toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="auto-switch-toggle">
+            <span class="toggle-track"></span>
+          </label>
+          <span data-i18n="auto_switch">自动切换代理</span>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="add-rule-btn" data-i18n="add_rule">+ 添加规则</button>
+      </div>
+
+      <div class="default-proxy-row">
+        <span data-i18n="default_proxy">默认代理:</span>
+        <select id="default-proxy-sel"></select>
+      </div>
+
+      <div class="test-url-bar">
+        <input type="text" id="test-url-input" data-i18n-ph="test_url_ph" placeholder="测试 URL..." style="flex:1;font-size:12px">
+        <button class="btn btn-ghost btn-sm" id="test-url-btn" data-i18n="test">测试</button>
+      </div>
+      <div class="test-url-result text-sm" id="test-url-result"></div>
+
+      <div class="rule-list" id="rule-list"></div>
+
+      <!-- Rule add form -->
+      <div class="rule-add-form" id="rule-add-form" style="display:none">
+        <div class="form-label mb-1" data-i18n="rule_pattern">URL 模式</div>
+        <div class="form-row mb-2">
+          <input type="text" id="rf-pattern" data-i18n-ph="rule_pattern_ph" placeholder="例: *.google.com" style="flex:1;font-family:monospace;font-size:12px">
+          <select id="rf-type" style="width:90px;font-size:12px">
+            <option value="wildcard" data-i18n="wildcard">通配符</option>
+            <option value="regex" data-i18n="regex">正则</option>
           </select>
         </div>
-        <div class="input-group">
-          <input type="text" id="proxy-host" placeholder="主机地址" data-placeholder-zh="主机地址" data-placeholder-en="Host Address">
-          <input type="text" id="proxy-port" placeholder="端口" data-placeholder-zh="端口" data-placeholder-en="Port" style="width: 60px;">
+        <div class="form-label mb-1" data-i18n="use_proxy">使用代理</div>
+        <div class="form-row mb-2">
+          <select id="rf-proxy" style="flex:1;font-size:12px"></select>
         </div>
-        <div class="input-group">
-          <textarea id="bypass-list" placeholder="不使用代理的地址，每行一个，例如: *.example.com" data-placeholder-zh="不使用代理的地址，每行一个，例如: *.example.com" data-placeholder-en="Bypass list, one per line, e.g.: *.example.com" style="width: 100%; height: 60px; margin-bottom: 8px;"></textarea>
-        </div>
-        <div class="input-group" style="justify-content: flex-end;">
-          <button class="btn primary" id="add-proxy">
-            <span data-text="zh">添加</span>
-            <span data-text="en">Add</span>
-          </button>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" id="rf-cancel" data-i18n="cancel">取消</button>
+          <button class="btn btn-primary btn-sm" id="rf-save" data-i18n="save">保存</button>
         </div>
       </div>
     </div>
 
-    <!-- 请求头修改工具 -->
-    <div class="section">
-      <h2 class="section-title">
-        <span data-text="zh">请求头修改</span>
-        <span data-text="en">Header Modification</span>
-      </h2>
-      <div class="tool-section">
-        <!-- XFF修改 -->
-        <div class="tool-item">
-          <div class="tool-header">
-            <label class="switch">
-              <input type="checkbox" id="xforwarded-switch">
-              <span class="slider"></span>
-            </label>
-            <span>
-              <span data-text="zh">XFF修改</span>
-              <span data-text="en">XFF Modification</span>
-            </span>
-          </div>
-          <div class="tool-content" id="xforwarded-content">
-            <div class="input-group">
-              <select id="header-select" multiple style="flex: 1; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-height: 100px;">
-                <option value="x-forwarded-for">X-Forwarded-For</option>
-                <option value="x-originating-ip">X-Originating-IP</option>
-                <option value="x-remote-ip">X-Remote-IP</option>
-                <option value="x-remote-addr">X-Remote-Addr</option>
-                <option value="x-real-ip">X-Real-IP</option>
-                <option value="x-forwarded">X-Forwarded</option>
-                <option value="x-cluster-client-ip">X-Cluster-Client-IP</option>
-                <option value="forwarded-for">Forwarded-For</option>
-                <option value="forwarded">Forwarded</option>
-                <option value="true-client-ip">True-Client-IP</option>
-                <option value="client-ip">Client-IP</option>
-                <option value="ali-cdn-real-ip">Ali-CDN-Real-IP</option>
-                <option value="cdn-src-ip">CDN-SRC-IP</option>
-                <option value="cdn-real-ip">CDN-Real-IP</option>
-                <option value="cf-connecting-ip">CF-Connecting-IP</option>
-                <option value="wl-proxy-client-ip">WL-Proxy-Client-IP</option>
-              </select>
-            </div>
-            <div class="input-group">
-              <input type="text" id="xforwarded-ip" placeholder="输入IP地址，例如: 1.1.1.1" data-placeholder-zh="输入IP地址，例如: 1.1.1.1" data-placeholder-en="Enter IP address, e.g.: 1.1.1.1">
-              <button class="btn primary" id="xforwarded-save">
-                <span data-text="zh">保存</span>
-                <span data-text="en">Save</span>
-              </button>
-            </div>
+    <!-- ====== Settings Panel ====== -->
+    <div class="panel" id="panel-settings">
+
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="appearance">外观</div>
+        <div class="settings-item">
+          <span data-i18n="theme">主题</span>
+          <div class="segment">
+            <button class="seg-btn" data-theme-opt="light" data-i18n="theme_light">浅色</button>
+            <button class="seg-btn active" data-theme-opt="auto" data-i18n="theme_auto">自动</button>
+            <button class="seg-btn" data-theme-opt="dark" data-i18n="theme_dark">深色</button>
           </div>
         </div>
-
-        <!-- 自定义请求头 -->
-        <div class="tool-item">
-          <div class="tool-header">
-            <label class="switch">
-              <input type="checkbox" id="custom-headers-switch">
-              <span class="slider"></span>
-            </label>
-            <span>
-              <span data-text="zh">自定义请求头</span>
-              <span data-text="en">Custom Headers</span>
-            </span>
-          </div>
-          <div class="tool-content" id="custom-headers-content">
-            <div id="custom-headers-list" style="display: flex; flex-direction: column; gap: 8px;">
-              <!-- 自定义请求头列表将通过JS动态添加 -->
-            </div>
-            <div class="input-group" style="margin-top: 12px;">
-              <div class="custom-header-input">
-                <input type="text" id="custom-header-name" placeholder="请求头名称" data-placeholder-zh="请求头名称" data-placeholder-en="Header Name" list="common-headers">
-                <datalist id="common-headers">
-                  <option value="Accept">
-                  <option value="Accept-Charset">
-                  <option value="Accept-Encoding">
-                  <option value="Accept-Language">
-                  <option value="Authorization">
-                  <option value="Cache-Control">
-                  <option value="Connection">
-                  <option value="Content-Type">
-                  <option value="Content-Length">
-                  <option value="Content-Encoding">
-                  <option value="Cookie">
-                  <option value="DNT">
-                  <option value="Host">
-                  <option value="If-Modified-Since">
-                  <option value="If-None-Match">
-                  <option value="Origin">
-                  <option value="Pragma">
-                  <option value="Referer">
-                  <option value="User-Agent">
-                  <option value="X-Forwarded-For">
-                  <option value="X-Forwarded-Proto">
-                  <option value="X-Forwarded-Host">
-                  <option value="X-Real-IP">
-                  <option value="X-Originating-IP">
-                  <option value="X-Remote-IP">
-                  <option value="X-Remote-Addr">
-                  <option value="X-Cluster-Client-IP">
-                  <option value="X-Requested-With">
-                  <option value="X-Custom-Header">
-                  <option value="X-API-Key">
-                  <option value="X-Auth-Token">
-                  <option value="X-Session-ID">
-                  <option value="X-Client-IP">
-                  <option value="X-Device-ID">
-                  <option value="X-App-Version">
-                  <option value="X-Platform">
-                  <option value="CF-Connecting-IP">
-                  <option value="CF-IPCountry">
-                  <option value="CF-Ray">
-                  <option value="True-Client-IP">
-                  <option value="Client-IP">
-                  <option value="Forwarded">
-                  <option value="Forwarded-For">
-                  <option value="Via">
-                  <option value="Vary">
-                  <option value="Upgrade-Insecure-Requests">
-                  <option value="Sec-Fetch-Dest">
-                  <option value="Sec-Fetch-Mode">
-                  <option value="Sec-Fetch-Site">
-                  <option value="Sec-Fetch-User">
-                  <option value="Sec-CH-UA">
-                  <option value="Sec-CH-UA-Mobile">
-                  <option value="Sec-CH-UA-Platform">
-                </datalist>
-                <input type="text" id="custom-header-value" placeholder="请求头内容" data-placeholder-zh="请求头内容" data-placeholder-en="Header Value">
-              </div>
-              <div class="custom-header-add">
-                <button class="btn primary" id="add-custom-header">
-                  <span data-text="zh">添加</span>
-                  <span data-text="en">Add</span>
-                </button>
-              </div>
-            </div>
-            <div class="header-hint">
-              <small style="color: #666; font-size: 11px;">
-                <span data-text="zh">💡 输入请求头名称时会显示建议，有建议值时双击值输入框可快速填入</span>
-                <span data-text="en">💡 Header suggestions appear when typing, double-click value field to fill suggested values</span>
-              </small>
-            </div>
-          </div>
-        </div>
-
-        <!-- User-Agent -->
-        <div class="tool-item">
-          <div class="tool-header">
-            <label class="switch">
-              <input type="checkbox" id="ua-switch">
-              <span class="slider"></span>
-            </label>
-            <span>User-Agent</span>
-          </div>
-          <div class="tool-content" id="ua-content">
-            <div class="input-group">
-              <input type="text" id="ua-value" placeholder="输入User-Agent" data-placeholder-zh="输入User-Agent" data-placeholder-en="Enter User-Agent">
-              <button class="btn primary" id="ua-save">
-                <span data-text="zh">保存</span>
-                <span data-text="en">Save</span>
-              </button>
-            </div>
-            <div class="input-group">
-              <button class="btn" id="ua-mobile">
-                <span data-text="zh">移动端</span>
-                <span data-text="en">Mobile</span>
-              </button>
-              <button class="btn" id="ua-desktop">
-                <span data-text="zh">桌面端</span>
-                <span data-text="en">Desktop</span>
-              </button>
-            </div>
+        <div class="settings-item">
+          <span data-i18n="language">语言</span>
+          <div class="segment">
+            <button class="seg-btn active" data-lang="zh">中文</button>
+            <button class="seg-btn" data-lang="en">English</button>
           </div>
         </div>
       </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title" data-i18n="data_management">数据管理</div>
+        <div class="settings-actions">
+          <button class="btn btn-ghost btn-full" id="export-btn" data-i18n="export_config">导出配置</button>
+          <button class="btn btn-ghost btn-full" id="import-btn" data-i18n="import_config">导入配置</button>
+          <input type="file" id="import-file" accept=".json" style="display:none">
+          <button class="btn btn-danger btn-full" id="reset-btn" data-i18n="reset_config">恢复默认设置</button>
+        </div>
+      </div>
+
+      <div class="about-section">
+        <div style="font-weight:700;font-size:13px;color:var(--c-primary);margin-bottom:4px">NextSwitchyAlpha v0.3.0</div>
+        <div data-i18n="author_label">作者: 可以遐想 (keyixiaxiang)</div>
+        <div style="margin-top:4px;font-size:11px;color:var(--c-text3)" data-i18n="tagline">超越 SwitchyOmega · ModHeader · XFF Header</div>
+      </div>
     </div>
-  </div>
 
-  <div class="footer">
-    <span class="author">
-      <span data-text="zh">作者：可以遐想</span>
-      <span data-text="en">Author: keyixiaxiang</span>
-    </span>
-    <span class="version">v0.2.0 Beta</span>
-  </div>
+  </main>
 
-  <script src="popup.js"></script>
-  <script src="language.js"></script>
+  <!-- Toast -->
+  <div id="toast"></div>
+</div>
+<script src="popup.js"></script>
 </body>
 </html>

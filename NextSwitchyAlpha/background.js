@@ -1,272 +1,237 @@
-// 代理配置存储
-let proxyConfigs = {};
-let currentProxy = 'system';  // 默认使用系统代理
-let systemProxyRetryCount = 0;
-const MAX_SYSTEM_PROXY_RETRIES = 5;
-const SYSTEM_PROXY_RETRY_INTERVAL = 1000;
-const SYSTEM_PROXY_CHECK_INTERVAL = 2000;
+'use strict';
 
-// 初始化
-chrome.runtime.onInstalled.addListener(() => {
-  initializeConfigs();
-});
+// ====== State ======
+let state = {
+  proxyConfigs: {
+    direct: { name: 'direct', mode: 'direct' },
+    system: { name: 'system', mode: 'system' }
+  },
+  currentProxy: 'direct',
+  autoSwitch: { enabled: false, defaultProxy: 'direct', rules: [] }
+};
 
-// 在扩展启动时也初始化配置
-chrome.runtime.onStartup.addListener(() => {
-  initializeConfigs();
-});
+let systemProxyMonitorInterval = null;
 
-// 初始化配置函数
-function initializeConfigs() {
-  chrome.storage.local.get(['proxyConfigs', 'currentProxy', 'headerSettings', 'uaSettings'], (result) => {
-    if (!result.proxyConfigs) {
-      proxyConfigs = {
-        'direct': { mode: 'direct' },
-        'system': { mode: 'system' }
-      };
-      chrome.storage.local.set({ proxyConfigs });
-    } else {
-      proxyConfigs = result.proxyConfigs;
-    }
+// ====== Init ======
+chrome.runtime.onInstalled.addListener(initialize);
+chrome.runtime.onStartup.addListener(initialize);
 
-    // 设置默认代理为系统代理
-    if (!result.currentProxy) {
-      currentProxy = 'system';
-      chrome.storage.local.set({ currentProxy });
-    } else {
-      currentProxy = result.currentProxy;
-    }
+async function initialize() {
+  const data = await chrome.storage.local.get([
+    'proxyConfigs', 'currentProxy', 'autoSwitch',
+    'xffSettings', 'uaSettings', 'headerRules',
+    'headerSettings', 'customHeaders' // old schema keys for migration
+  ]);
 
-    // 应用当前代理设置
-    applyProxySettings(currentProxy);
+  // Merge proxy configs (preserve defaults)
+  if (data.proxyConfigs) {
+    state.proxyConfigs = {
+      direct: { name: 'direct', mode: 'direct' },
+      system: { name: 'system', mode: 'system' },
+      ...data.proxyConfigs
+    };
+  } else {
+    await chrome.storage.local.set({ proxyConfigs: state.proxyConfigs });
+  }
 
-    // 应用已保存的请求头规则
-    if (result.headerSettings?.enabled) {
-      applyHeaderRules(result.headerSettings);
-    }
-    if (result.uaSettings?.enabled) {
-      applyUserAgentRules(result.uaSettings);
-    }
-  });
+  state.currentProxy = data.currentProxy || 'direct';
+  state.autoSwitch = data.autoSwitch || { enabled: false, defaultProxy: 'direct', rules: [] };
+
+  // Migrate old schema to new schema
+  await migrateOldSchema(data);
+
+  applyCurrentProxy();
+
+  const fresh = await chrome.storage.local.get(['xffSettings', 'uaSettings', 'headerRules']);
+  await rebuildDynamicRules(fresh);
 }
 
-// 监听存储变化
-chrome.storage.onChanged.addListener((changes) => {
+async function migrateOldSchema(data) {
+  const updates = {};
+
+  if (data.headerSettings && !data.xffSettings) {
+    updates.xffSettings = {
+      enabled: data.headerSettings.enabled || false,
+      ip: data.headerSettings.ip || '',
+      headers: data.headerSettings.headers || ['x-forwarded-for'],
+      urlPattern: ''
+    };
+  }
+
+  if (data.customHeaders && !data.headerRules) {
+    const ch = data.customHeaders;
+    const rules = (ch.headers || []).map((h, i) => ({
+      id: `migrated_${i}`,
+      enabled: ch.enabled && (h.enabled !== false),
+      urlPattern: '',
+      requestHeaders: [{ header: h.name, value: h.value, operation: 'set' }],
+      responseHeaders: []
+    }));
+    updates.headerRules = rules;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await chrome.storage.local.set(updates);
+  }
+}
+
+// ====== Storage Listeners ======
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local') return;
+
+  let needRebuild = false;
+
   if (changes.proxyConfigs) {
-    proxyConfigs = changes.proxyConfigs.newValue || {};
-    console.log('代理配置已更新:', proxyConfigs);
+    state.proxyConfigs = {
+      direct: { name: 'direct', mode: 'direct' },
+      system: { name: 'system', mode: 'system' },
+      ...changes.proxyConfigs.newValue
+    };
   }
   if (changes.currentProxy) {
-    currentProxy = changes.currentProxy.newValue;
-    console.log('当前代理已更新:', currentProxy);
-    applyProxySettings(currentProxy);
+    state.currentProxy = changes.currentProxy.newValue;
+    if (!state.autoSwitch.enabled) applyProxyConfig(state.currentProxy);
+  }
+  if (changes.autoSwitch) {
+    state.autoSwitch = changes.autoSwitch.newValue;
+    applyCurrentProxy();
+  }
+  if (changes.xffSettings || changes.uaSettings || changes.headerRules) {
+    needRebuild = true;
+  }
+
+  if (needRebuild) {
+    const data = await chrome.storage.local.get(['xffSettings', 'uaSettings', 'headerRules']);
+    await rebuildDynamicRules(data);
   }
 });
 
-// 检查代理设置是否匹配预期
-async function checkProxySettings() {
-  try {
-    const config = await new Promise((resolve) => {
-      chrome.proxy.settings.get({ incognito: false }, (config) => {
-        if (chrome.runtime.lastError) {
-          console.error('获取代理设置失败:', chrome.runtime.lastError);
-          resolve(null);
-        } else {
-          resolve(config);
-        }
-      });
-    });
-
-    if (!config) return false;
-
-    const currentConfig = proxyConfigs[currentProxy];
-    if (!currentConfig) return false;
-
-    // 检查模式是否匹配
-    const isMatching = config.value.mode === currentConfig.mode;
-    if (!isMatching) {
-      console.log('代理模式不匹配，当前:', config.value.mode, '预期:', currentConfig.mode);
-      return false;
-    }
-
-    // 系统代理特殊处理
-    if (currentConfig.mode === 'system') {
-      // 添加额外的系统代理检查
-      const systemProxyWorking = await checkSystemProxyEffective();
-      if (!systemProxyWorking) {
-        console.log('系统代理未生效');
-        return false;
-      }
-    }
-
-    return true;
-  } catch (error) {
-    console.error('检查代理设置时发生错误:', error);
-    return false;
+// ====== Proxy Application ======
+function applyCurrentProxy() {
+  if (state.autoSwitch.enabled && state.autoSwitch.rules.filter(r => r.enabled).length > 0) {
+    applyPacScript();
+  } else if (state.autoSwitch.enabled) {
+    applyProxyConfig(state.autoSwitch.defaultProxy || 'direct');
+  } else {
+    applyProxyConfig(state.currentProxy);
   }
 }
 
-// 应用代理设置
-function applyProxySettings(proxyName) {
-  const config = proxyConfigs[proxyName];
-  if (!config) {
-    console.error('找不到代理配置:', proxyName);
-    return;
-  }
+function generatePacScript() {
+  const { rules, defaultProxy } = state.autoSwitch;
 
-  let proxySettings = {};
+  const proxyStr = (name) => {
+    const cfg = state.proxyConfigs[name];
+    if (!cfg || cfg.mode === 'direct') return '"DIRECT"';
+    if (cfg.mode === 'system') return '"DIRECT"';
+    const { scheme = 'http', host, port } = cfg;
+    if (scheme === 'socks5') return `"SOCKS5 ${host}:${port}; DIRECT"`;
+    if (scheme === 'socks4') return `"SOCKS ${host}:${port}; DIRECT"`;
+    if (scheme === 'https') return `"HTTPS ${host}:${port}; DIRECT"`;
+    return `"PROXY ${host}:${port}; DIRECT"`;
+  };
 
-  switch (config.mode) {
+  const lines = rules
+    .filter(r => r.enabled && r.pattern && r.proxy)
+    .map(r => {
+      const p = proxyStr(r.proxy);
+      if (r.patternType === 'regex') {
+        return `  try { if (/${r.pattern}/i.test(url)) return ${p}; } catch(e) {}`;
+      }
+      return `  if (shExpMatch(url, ${JSON.stringify(r.pattern)})) return ${p};`;
+    })
+    .join('\n');
+
+  return `function FindProxyForURL(url, host) {\n${lines}\n  return ${proxyStr(defaultProxy || 'direct')};\n}`;
+}
+
+function applyPacScript() {
+  const data = generatePacScript();
+  chrome.proxy.settings.set(
+    { value: { mode: 'pac_script', pacScript: { data } }, scope: 'regular' },
+    () => {
+      if (chrome.runtime.lastError) {
+        console.error('PAC apply failed:', chrome.runtime.lastError);
+      } else {
+        setBadge('⚡', '#f59e0b');
+      }
+    }
+  );
+}
+
+function applyProxyConfig(name) {
+  const cfg = state.proxyConfigs[name];
+  if (!cfg) return;
+
+  let value = {};
+  switch (cfg.mode) {
     case 'direct':
-      proxySettings = { mode: 'direct' };
+      value = { mode: 'direct' };
       break;
     case 'system':
-      proxySettings = { mode: 'system' };
+      value = { mode: 'system' };
       break;
     case 'fixed_servers':
-      proxySettings = {
+      value = {
         mode: 'fixed_servers',
         rules: {
-          singleProxy: {
-            scheme: config.scheme || 'http',
-            host: config.host,
-            port: parseInt(config.port)
-          },
-          bypassList: config.bypassList || []
+          singleProxy: { scheme: cfg.scheme || 'http', host: cfg.host, port: parseInt(cfg.port) },
+          bypassList: cfg.bypassList || []
         }
       };
       break;
     case 'pac_script':
-      proxySettings = {
+      value = {
         mode: 'pac_script',
-        pacScript: {
-          url: config.pacUrl || '',
-          data: config.pacData || ''
-        }
+        pacScript: cfg.pacUrl ? { url: cfg.pacUrl } : { data: cfg.pacData || '' }
       };
       break;
+    default:
+      return;
   }
 
-  try {
-    // 在应用新设置之前，先确保配置已经保存到存储中
-    chrome.storage.local.set({ proxyConfigs, currentProxy: proxyName }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('保存配置失败:', chrome.runtime.lastError);
-        return;
-      }
-
-      // 直接应用新的代理设置，不再先清除
-      chrome.proxy.settings.set(
-        { value: proxySettings, scope: 'regular' },
-        () => {
-          if (chrome.runtime.lastError) {
-            console.error('代理设置应用失败:', chrome.runtime.lastError);
-            if (config.mode === 'system' && systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
-              systemProxyRetryCount++;
-              setTimeout(() => applyProxySettings(proxyName), SYSTEM_PROXY_RETRY_INTERVAL);
-            }
-          } else {
-            console.log('代理设置已应用:', proxyName, proxySettings);
-            systemProxyRetryCount = 0;
-            updateIcon(proxyName);
-            
-            // 验证设置是否成功应用
-            setTimeout(() => {
-              checkProxySettings().then(isValid => {
-                if (!isValid) {
-                  console.warn('代理设置可能未正确应用，尝试重新应用');
-                  if (systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
-                    systemProxyRetryCount++;
-                    applyProxySettings(proxyName);
-                  }
-                }
-              });
-            }, 500);
-
-            if (config.mode === 'system') {
-              startSystemProxyMonitor();
-            } else {
-              stopSystemProxyMonitor();
-            }
-          }
-        }
-      );
-    });
-  } catch (error) {
-    console.error('应用代理设置时发生错误:', error);
-    if (config.mode === 'system' && systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
-      systemProxyRetryCount++;
-      setTimeout(() => applyProxySettings(proxyName), SYSTEM_PROXY_RETRY_INTERVAL);
+  chrome.proxy.settings.set({ value, scope: 'regular' }, () => {
+    if (chrome.runtime.lastError) {
+      console.error('Proxy apply failed:', chrome.runtime.lastError);
+      return;
     }
-  }
-}
-
-// 新增：检查系统代理是否真正生效
-async function checkSystemProxyEffective() {
-  try {
-    const config = await new Promise((resolve) => {
-      chrome.proxy.settings.get({ incognito: false }, (config) => resolve(config));
-    });
-
-    // 检查是否为系统代理模式
-    if (!config || config.value.mode !== 'system') {
-      return false;
-    }
-
-    // 检查控制级别
-    if (!config.levelOfControl || 
-        !['controlled_by_this_extension', 'controlled_by_other_extensions'].includes(config.levelOfControl)) {
-      console.log('代理控制级别不正确:', config.levelOfControl);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('检查系统代理状态时发生错误:', error);
-    return false;
-  }
-}
-
-// 验证系统代理是否生效
-async function verifySystemProxy() {
-  try {
-    const config = await new Promise((resolve) => {
-      chrome.proxy.settings.get({ incognito: false }, (config) => {
-        resolve(config);
-      });
-    });
-
-    if (!config || config.value.mode !== 'system') {
-      console.log('系统代理未生效，重试...');
-      if (systemProxyRetryCount < MAX_SYSTEM_PROXY_RETRIES) {
-        systemProxyRetryCount++;
-        setTimeout(() => applyProxySettings('system'), SYSTEM_PROXY_RETRY_INTERVAL);
-      }
+    updateBadgeForProxy(name, cfg);
+    if (cfg.mode === 'system') {
+      startSystemProxyMonitor();
     } else {
-      console.log('系统代理已生效');
-      systemProxyRetryCount = 0;
+      stopSystemProxyMonitor();
     }
-  } catch (error) {
-    console.error('验证系统代理时发生错误:', error);
+  });
+}
+
+// ====== Badge ======
+function setBadge(text, color) {
+  chrome.action.setBadgeText({ text: text || '' });
+  if (color) chrome.action.setBadgeBackgroundColor({ color });
+}
+
+function updateBadgeForProxy(name, cfg) {
+  if (name === 'direct') {
+    setBadge('');
+  } else if (name === 'system') {
+    setBadge('SYS', '#10b981');
+  } else {
+    const scheme = cfg.scheme || 'http';
+    const label = scheme === 'socks5' ? 'S5' : scheme === 'socks4' ? 'S4' : scheme === 'https' ? 'TLS' : scheme.toUpperCase().slice(0, 4);
+    setBadge(label, cfg.color || '#6366f1');
   }
 }
 
-// 系统代理监控
-let systemProxyMonitorInterval = null;
-
+// ====== System Proxy Monitor ======
 function startSystemProxyMonitor() {
   stopSystemProxyMonitor();
-
   systemProxyMonitorInterval = setInterval(async () => {
-    if (currentProxy === 'system') {
-      const isValid = await checkSystemProxyEffective();
-      if (!isValid) {
-        console.log('检测到系统代理设置异常，尝试恢复...');
-        applyProxySettings('system');
-      }
-      updateSystemProxyStatus(isValid);
-    }
-  }, SYSTEM_PROXY_CHECK_INTERVAL);
+    if (state.currentProxy !== 'system' || state.autoSwitch.enabled) return;
+    const cfg = await new Promise(r => chrome.proxy.settings.get({ incognito: false }, r));
+    const ok = cfg?.value?.mode === 'system' &&
+      ['controlled_by_this_extension', 'controlled_by_other_extensions'].includes(cfg.levelOfControl);
+    setBadge(ok ? 'SYS' : '!SYS', ok ? '#10b981' : '#ef4444');
+  }, 5000);
 }
 
 function stopSystemProxyMonitor() {
@@ -276,213 +241,242 @@ function stopSystemProxyMonitor() {
   }
 }
 
-// 更新系统代理状态
-function updateSystemProxyStatus(isWorking) {
-  chrome.action.setBadgeText({ 
-    text: currentProxy === 'system' ? (isWorking ? 'S' : '!S') : (currentProxy === 'direct' ? '' : 'P')
-  });
-  chrome.action.setBadgeBackgroundColor({ 
-    color: isWorking ? '#4285f4' : '#f44336'
-  });
+// ====== Dynamic Header Rules ======
+const RESOURCE_TYPES = [
+  'main_frame', 'sub_frame', 'stylesheet', 'script', 'image',
+  'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other'
+];
+
+const ID_XFF = 1;
+const ID_UA = 2;
+const ID_CUSTOM_BASE = 10;
+const ID_CUSTOM_MAX = 149;
+
+async function rebuildDynamicRules(data) {
+  const rules = [];
+
+  // XFF rule
+  const xff = data.xffSettings;
+  if (xff?.enabled && xff?.ip && xff?.headers?.length) {
+    const condition = buildCondition(xff.urlPattern);
+    rules.push({
+      id: ID_XFF,
+      priority: 2,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: xff.headers.map(h => ({ header: h, operation: 'set', value: xff.ip }))
+      },
+      condition
+    });
+  }
+
+  // UA rule
+  const ua = data.uaSettings;
+  if (ua?.enabled && ua?.value) {
+    const condition = buildCondition(ua.urlPattern, ['main_frame', 'sub_frame', 'xmlhttprequest']);
+    rules.push({
+      id: ID_UA,
+      priority: 2,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [{ header: 'user-agent', operation: 'set', value: ua.value }]
+      },
+      condition
+    });
+  }
+
+  // Custom header rules
+  const headerRules = data.headerRules || [];
+  let ruleIdx = 0;
+  for (const rule of headerRules) {
+    if (!rule.enabled) continue;
+    const id = ID_CUSTOM_BASE + ruleIdx;
+    if (id > ID_CUSTOM_MAX) break;
+
+    const reqHeaders = (rule.requestHeaders || []).filter(h => h.header && (h.value || h.operation === 'remove'));
+    const resHeaders = (rule.responseHeaders || []).filter(h => h.header && (h.value || h.operation === 'remove'));
+    if (!reqHeaders.length && !resHeaders.length) continue;
+
+    const action = { type: 'modifyHeaders' };
+    if (reqHeaders.length) action.requestHeaders = reqHeaders;
+    if (resHeaders.length) action.responseHeaders = resHeaders;
+
+    rules.push({ id, priority: 1, action, condition: buildCondition(rule.urlPattern) });
+    ruleIdx++;
+  }
+
+  // Remove all managed IDs and re-add
+  const removeIds = [ID_XFF, ID_UA, ...Array.from({ length: ID_CUSTOM_MAX - ID_CUSTOM_BASE + 1 }, (_, i) => ID_CUSTOM_BASE + i)];
+  try {
+    await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: removeIds, addRules: rules });
+  } catch (e) {
+    console.error('Rule update failed:', e);
+  }
 }
 
-// 更新图标状态
-function updateIcon(proxyName) {
-  if (proxyName === 'direct') {
-    chrome.action.setBadgeText({ text: '' });
-  } else if (proxyName === 'system') {
-    checkProxySettings().then(isValid => {
-      updateSystemProxyStatus(isValid);
-    });
+function buildCondition(urlPattern, resourceTypes) {
+  const condition = { resourceTypes: resourceTypes || RESOURCE_TYPES };
+  if (urlPattern && urlPattern.trim()) {
+    try {
+      // Validate regex by constructing it
+      const regex = wildcardToRegex(urlPattern);
+      new RegExp(regex);
+      condition.regexFilter = regex;
+    } catch (e) {
+      condition.urlFilter = '*';
+    }
   } else {
-    chrome.action.setBadgeText({ text: 'P' });
-    chrome.action.setBadgeBackgroundColor({ color: '#4285f4' });
+    condition.urlFilter = '*';
   }
+  return condition;
 }
 
-// 应用请求头规则
-function applyHeaderRules(settings) {
-  if (!settings.enabled || !settings.ip || !settings.headers) return;
-
-  const rules = settings.headers.map((header, index) => ({
-    id: index + 1,
-    priority: 1,
-    action: {
-      type: 'modifyHeaders',
-      requestHeaders: [{
-        header: header,
-        operation: 'set',
-        value: settings.ip
-      }]
-    },
-    condition: {
-      urlFilter: '*',
-      resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-    }
-  }));
-
-  updateDynamicRules(rules);
+function wildcardToRegex(pattern) {
+  return pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
 }
 
-// 应用User-Agent规则
-function applyUserAgentRules(settings) {
-  if (!settings.enabled || !settings.userAgent) return;
-
-  const rules = [{
-    id: 51,
-    priority: 1,
-    action: {
-      type: 'modifyHeaders',
-      requestHeaders: [{
-        header: 'User-Agent',
-        operation: 'set',
-        value: settings.userAgent
-      }]
-    },
-    condition: {
-      urlFilter: '*',
-      resourceTypes: ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'csp_report', 'media', 'websocket', 'other']
-    }
-  }];
-
-  updateDynamicRules(rules);
-}
-
-// 更新动态规则
-function updateDynamicRules(rules) {
-  chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: Array.from({ length: 100 }, (_, i) => i + 1), // 移除所有现有规则
-    addRules: rules
-  }, () => {
-    if (chrome.runtime.lastError) {
-      console.error('更新规则失败:', chrome.runtime.lastError);
-    } else {
-      console.log('规则已更新:', rules);
-    }
-  });
-}
-
-// 监听来自弹出窗口的消息
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'getProxyConfigs') {
-    // 从存储中重新获取最新配置
-    chrome.storage.local.get(['proxyConfigs', 'currentProxy'], (result) => {
-      proxyConfigs = result.proxyConfigs || {
-        'direct': { mode: 'direct' },
-        'system': { mode: 'system' }
-      };
-      currentProxy = result.currentProxy || 'system';
-      sendResponse({ proxyConfigs, currentProxy });
-    });
-    return true; // 保持消息通道开放
-  } else if (message.action === 'setCurrentProxy') {
-    currentProxy = message.proxyName;
-    chrome.storage.local.set({ currentProxy }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('保存当前代理失败:', chrome.runtime.lastError);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
-      } else {
-        console.log('当前代理已保存:', currentProxy);
-        sendResponse({ success: true });
-      }
-    });
-    return true; // 保持消息通道开放
-  } else if (message.action === 'addProxyConfig') {
-    const config = message.config;
-    proxyConfigs[config.name] = config;
-    
-    chrome.storage.local.set({ proxyConfigs }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('保存代理配置失败:', chrome.runtime.lastError);
-        sendResponse({ success: false, error: chrome.runtime.lastError.message });
-      } else {
-        console.log('代理配置已保存:', config);
-        sendResponse({ success: true });
-      }
-    });
-    return true; // 保持消息通道开放
-  } else if (message.action === 'removeProxyConfig') {
-    if (message.proxyName !== 'direct' && message.proxyName !== 'system') {
-      delete proxyConfigs[message.proxyName];
-      
-      chrome.storage.local.set({ proxyConfigs }, () => {
-        if (chrome.runtime.lastError) {
-          console.error('删除代理配置失败:', chrome.runtime.lastError);
-          sendResponse({ success: false, error: chrome.runtime.lastError.message });
-        } else {
-          console.log('代理配置已删除:', message.proxyName);
-          if (currentProxy === message.proxyName) {
-            currentProxy = 'direct';
-            chrome.storage.local.set({ currentProxy });
-          }
-          sendResponse({ success: true });
-        }
-      });
-    } else {
-      sendResponse({ success: false, error: '无法删除默认配置' });
-    }
-    return true; // 保持消息通道开放
-  } else if (message.action === 'testProxyConfig') {
-    // 保存当前配置
-    const previousProxy = currentProxy;
-    const previousSettings = proxyConfigs[currentProxy];
-
-    // 临时应用测试配置
-    const testConfig = message.config;
-    let proxySettings = {};
-
-    switch (testConfig.mode) {
-      case 'direct':
-        proxySettings = { mode: 'direct' };
-        break;
-      case 'system':
-        proxySettings = { mode: 'system' };
-        break;
-      case 'fixed_servers':
-        proxySettings = {
-          mode: 'fixed_servers',
-          rules: {
-            singleProxy: {
-              scheme: testConfig.scheme || 'http',
-              host: testConfig.host,
-              port: parseInt(testConfig.port)
-            },
-            bypassList: testConfig.bypassList || []
-          }
-        };
-        break;
-      case 'pac_script':
-        proxySettings = {
-          mode: 'pac_script',
-          pacScript: {
-            url: testConfig.pacUrl || '',
-            data: testConfig.pacData || ''
-          }
-        };
-        break;
-    }
-
-    // 应用测试设置
-    chrome.proxy.settings.set(
-      { value: proxySettings, scope: 'regular' },
-      () => {
-        sendResponse({ success: true });
-
-        // 3秒后恢复原始设置
-        setTimeout(() => {
-          applyProxySettings(previousProxy);
-        }, 3000);
-      }
-    );
-
-    return true; // 保持消息通道开放
-  } else if (message.action === 'updateHeaderRules') {
-    if (message.enabled) {
-      updateDynamicRules(message.rules);
-    } else {
-      updateDynamicRules([]);
-    }
-    sendResponse({ success: true });
-  }
+// ====== Message Handler ======
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  handleMessage(msg).then(
+    data => sendResponse({ ok: true, data }),
+    err => sendResponse({ ok: false, error: err.message })
+  );
   return true;
 });
+
+async function handleMessage(msg) {
+  switch (msg.action) {
+
+    case 'getState': {
+      const data = await chrome.storage.local.get([
+        'proxyConfigs', 'currentProxy', 'autoSwitch',
+        'xffSettings', 'uaSettings', 'headerRules', 'appSettings'
+      ]);
+      return {
+        proxyConfigs: data.proxyConfigs || state.proxyConfigs,
+        currentProxy: data.currentProxy || state.currentProxy,
+        autoSwitch: data.autoSwitch || state.autoSwitch,
+        xffSettings: data.xffSettings || { enabled: false, ip: '', headers: ['x-forwarded-for'], urlPattern: '' },
+        uaSettings: data.uaSettings || { enabled: false, value: '', urlPattern: '' },
+        headerRules: data.headerRules || [],
+        appSettings: data.appSettings || { theme: 'auto', language: 'zh' }
+      };
+    }
+
+    case 'setCurrentProxy': {
+      state.currentProxy = msg.name;
+      await chrome.storage.local.set({ currentProxy: msg.name });
+      if (!state.autoSwitch.enabled) applyProxyConfig(msg.name);
+      return null;
+    }
+
+    case 'saveProxyConfig': {
+      state.proxyConfigs[msg.config.name] = msg.config;
+      await chrome.storage.local.set({ proxyConfigs: state.proxyConfigs });
+      return null;
+    }
+
+    case 'removeProxyConfig': {
+      if (msg.name === 'direct' || msg.name === 'system') throw new Error('Cannot remove default proxies');
+      delete state.proxyConfigs[msg.name];
+      await chrome.storage.local.set({ proxyConfigs: state.proxyConfigs });
+      if (state.currentProxy === msg.name) {
+        state.currentProxy = 'direct';
+        await chrome.storage.local.set({ currentProxy: 'direct' });
+        if (!state.autoSwitch.enabled) applyProxyConfig('direct');
+      }
+      return null;
+    }
+
+    case 'setAutoSwitch': {
+      state.autoSwitch = msg.autoSwitch;
+      await chrome.storage.local.set({ autoSwitch: state.autoSwitch });
+      applyCurrentProxy();
+      return null;
+    }
+
+    case 'saveXffSettings': {
+      await chrome.storage.local.set({ xffSettings: msg.settings });
+      return null;
+    }
+
+    case 'saveUaSettings': {
+      await chrome.storage.local.set({ uaSettings: msg.settings });
+      return null;
+    }
+
+    case 'saveHeaderRules': {
+      await chrome.storage.local.set({ headerRules: msg.rules });
+      return null;
+    }
+
+    case 'saveAppSettings': {
+      await chrome.storage.local.set({ appSettings: msg.settings });
+      return null;
+    }
+
+    case 'testUrl': {
+      if (!state.autoSwitch.enabled) {
+        return { proxy: state.currentProxy, reason: 'auto-switch disabled' };
+      }
+      for (const rule of state.autoSwitch.rules) {
+        if (!rule.enabled || !rule.pattern) continue;
+        let matched = false;
+        try {
+          if (rule.patternType === 'regex') {
+            matched = new RegExp(rule.pattern, 'i').test(msg.url);
+          } else {
+            const regex = new RegExp(wildcardToRegex(rule.pattern), 'i');
+            matched = regex.test(msg.url);
+          }
+        } catch (e) { continue; }
+        if (matched) return { proxy: rule.proxy, reason: `Rule: ${rule.pattern}` };
+      }
+      return { proxy: state.autoSwitch.defaultProxy || 'direct', reason: 'Default (no match)' };
+    }
+
+    case 'importConfig': {
+      const cfg = msg.config;
+      const updates = {};
+      if (cfg.proxyConfigs) {
+        state.proxyConfigs = {
+          direct: { name: 'direct', mode: 'direct' },
+          system: { name: 'system', mode: 'system' },
+          ...cfg.proxyConfigs
+        };
+        updates.proxyConfigs = state.proxyConfigs;
+      }
+      if (cfg.currentProxy != null) updates.currentProxy = cfg.currentProxy;
+      if (cfg.autoSwitch != null) { state.autoSwitch = cfg.autoSwitch; updates.autoSwitch = cfg.autoSwitch; }
+      if (cfg.xffSettings != null) updates.xffSettings = cfg.xffSettings;
+      if (cfg.uaSettings != null) updates.uaSettings = cfg.uaSettings;
+      if (cfg.headerRules != null) updates.headerRules = cfg.headerRules;
+      if (cfg.appSettings != null) updates.appSettings = cfg.appSettings;
+      await chrome.storage.local.set(updates);
+      applyCurrentProxy();
+      const fresh = await chrome.storage.local.get(['xffSettings', 'uaSettings', 'headerRules']);
+      await rebuildDynamicRules(fresh);
+      return null;
+    }
+
+    case 'resetConfig': {
+      state.proxyConfigs = { direct: { name: 'direct', mode: 'direct' }, system: { name: 'system', mode: 'system' } };
+      state.currentProxy = 'direct';
+      state.autoSwitch = { enabled: false, defaultProxy: 'direct', rules: [] };
+      await chrome.storage.local.set({
+        proxyConfigs: state.proxyConfigs,
+        currentProxy: 'direct',
+        autoSwitch: state.autoSwitch,
+        xffSettings: { enabled: false, ip: '', headers: ['x-forwarded-for'], urlPattern: '' },
+        uaSettings: { enabled: false, value: '', urlPattern: '' },
+        headerRules: []
+      });
+      applyProxyConfig('direct');
+      await rebuildDynamicRules({ xffSettings: null, uaSettings: null, headerRules: [] });
+      return null;
+    }
+
+    default:
+      throw new Error('Unknown action: ' + msg.action);
+  }
+}
