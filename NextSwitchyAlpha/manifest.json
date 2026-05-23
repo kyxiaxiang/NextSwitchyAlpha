@@ -10,7 +10,6 @@
     "proxy",
     "storage",
     "declarativeNetRequest",
-    "declarativeNetRequestFeedback",
     "tabs",
     "activeTab",
     "webNavigation",
